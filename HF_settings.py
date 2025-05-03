@@ -2,7 +2,7 @@
 """
 Module for creating the Human Footprint maps of Peru and Ecuador.
 
-Version 2041001 (Preprint)
+Version 250503 (SciData)
 
 This script will read spatial datasets of pressures, prepared them by
 converting them all to a raster format with identical dimensions, then
@@ -10,12 +10,15 @@ score them to reflect their expected human influence.
 The scored pressures will then be added to calculate a Human Footprint map.
 
 The structure of the module requires the following:
-    - HF_main.py to control the higher level of the process.
+    - HF_main.py (this script) to control the higher level of the process.
     - HF_settings to control the general settings.
     - HF_tasks to call all functions according to the HF workflow.
     - HF_spatial to provide all spatial functions and classes.
     - HF_scores to provide scores of humnan influence.
     - HF_layers for the settings related to layers (e.g. paths).
+    - HF_validation for calculating validation metrics.
+    - HF_purpose_scoring (Optional) is not required to create HF maps. It 
+    compares different HF versions according to the TARA framework.
 
 This is part of the project Life on Land, with UNDP, the Ministries of the
 Environment of each country, and funded by NASA.
@@ -37,11 +40,7 @@ general_settings = {
         # country extent takes too long and is unnecessary
         'extent_Polygon': ('HF_maps/01_Limits/Limite_CONALI_2019.gpkg', False),  # Final maps
         # 'extent_Polygon': ('HF_maps/01_Limits/Quito_tests.shp', True),
-        # 'extent_Polygon': ('HF_maps/01_Limits/mini_oriente.shp', True),
-        # 'extent_Polygon': ('HF_maps/01_Limits/mini_mini_oriente.gpkg', True),
         # 'extent_Polygon': ('HF_maps/01_Limits/mini_sierra.shp', True),
-        # 'extent_Polygon': ('HF_maps/01_Limits/mini_costa.gpkg', True),
-        # 'extent_Polygon': ('HF_maps/01_Limits/Test01.gpkg', True),
         'elev_path': 'Oficial/IGM/Elevacion/ecu_dtm1_rev.gpkg',
         'slope_path': 'Oficial/IGM/Elevacion/slope_grass.tif',
         'coast_path': 'Oficial/Límite_CONALI/Costa_CONALI_2019.shp',
@@ -53,13 +52,10 @@ general_settings = {
 
             'SDG15': {
 
-                # 'years': [2018],
                 'years': [2014, 2016, 2018, 2020, 2022],
+                # 'years': [2018], #  for tests
                 'years_available': [2014, 2016, 2018, 2020, 2022],
                 'pixel_res': 30,
-
-                # 'years': [2018],
-                # 'pixel_res': 300,
 
                 'pressures': {
 
@@ -138,8 +134,8 @@ general_settings = {
                             'Ec_Poliductos_Petroecuador_MERNNR_20',
                             'Ec_SOTE_MERNNR_20',
                         ],
-                        'numb_categories': 6,
-                        # deposits, refineries, stations, wells, platforms,
+                        'numb_categories': 5,#6,
+                        # deposits, refineries, stations, wells, #platforms,
                         # pipelines
                         },
 
@@ -160,13 +156,9 @@ general_settings = {
 
             'Multitemporal': {
 
-                # 'years': [2018],
                 'years_available': [2014, 2016, 2018, 2020, 2022],
                 'years': [2018],
                 'pixel_res': 30,
-                
-                # 'years': [2018],
-                # 'pixel_res': 300,
 
                 'pressures': {
 
@@ -232,9 +224,6 @@ general_settings = {
                 'years': [2018],
                 'years_available': [2018],
                 'pixel_res': 30,
-                
-                # 'years': [2018],
-                # 'pixel_res': 300,
 
                 'pressures': {
 
@@ -306,8 +295,8 @@ general_settings = {
                             'Ec_Poliductos_Petroecuador_MERNNR_20',
                             'Ec_SOTE_MERNNR_20',
                         ],
-                        'numb_categories': 6,
-                        # deposits, refineries, stations, wells, platforms,
+                        'numb_categories': 5,#6,
+                        # deposits, refineries, stations, wells, #platforms,
                         # pipelines
                         },
 
@@ -329,32 +318,20 @@ general_settings = {
         # country extent takes too long and is unnecessary
         'extent_Polygon': ('HF_maps/01_Limits/Peru_IGN.gpkg', False),  # Final maps
         # "extent_Polygon": ('HF_maps/01_Limits/Peru_04-2.shp', True),
-        # "extent_Polygon": ('HF_maps/01_Limits/Peru_test.shp', True),
-        # "extent_Polygon": ('HF_maps/01_Limits/Peru_rivers2.gpkg', True),
-        # "extent_Polygon": ('HF_maps/01_Limits/Test_02.gpkg', True),
-        # "extent_Polygon": ('HF_maps/01_Limits/Built3.gpkg', True),
-        # "extent_Polygon": ('HF_maps/01_Limits/Huancayo.gpkg', True),
         'scoring_template': 'GHF',
         'elev_path': 'No_Oficial/MERIT_Hydro/Merge_MERIT_elev_Peru.tif',
         'slope_path': 'No_Oficial/MERIT_Hydro/Slope_GRASS_MERIT_Peru.tif',
-        # 'slope_path': 'No_Oficial/dem_PECO_mainland_bbox/dem_Pe_slope_grass.tif',
         'coast_path': 'Oficial/IGN/Costa_IGN.shp',
         'flooded_path': 'Oficial/MINAM/Geoservidor/Cobertura_Vegetal/mapa_cobertura_vegetal_2015/Ecosistemas_inundados.tif',
-        # 'split_folder': 'HF_maps/01_Limits/polygons_split_rivers//',
         'split_folder': 'HF_maps/01_Limits/polygons_split//',
         'purpose_layers': {
 
 
             'SDG15': {
 
-                # 'years': [2018],
-                # # 'years': list(range(2012,2023)),
-                # 'pixel_res': 300,
-
                 'years': list(range(2012,2022)), # 2022 is not part of the series
                 'years_available': list(range(2012,2022)), # 2022 is not part of the series
                 
-                # 'years': [2018], 
                 'pixel_res': 30,
 
                 'pressures': {
@@ -450,9 +427,6 @@ general_settings = {
                 'years': [2018],
                 'pixel_res': 30,
 
-                # 'years': [2018],
-                # 'pixel_res': 300,
-
                 'pressures': {
 
                     'Built_Environments': {
@@ -517,9 +491,6 @@ general_settings = {
                 'years': [2018],
                 'years_available': [2018],
                 'pixel_res': 30,
-
-                # 'years': [2018],
-                # 'pixel_res': 300,
 
                 'pressures': {
 
@@ -638,25 +609,21 @@ class GENERAL_SETTINGS:
         self.country = settings_c['country']
         # Extent...() ,True) for clipping, False for not clipping. Clipping all
         # country extent takes too long and is unnecessary
-        # self.extent_Polygon = main_folder + 'HF_maps/01_Limits/Limite_CONALI_2019.shp', False  # Final maps
         self.extent_Polygon = main_folder + settings_c['extent_Polygon'][0]
         self.clip_by_Polygon = settings_c['extent_Polygon'][1]
         self.crs, self.crs_authority = self.get_crs(self.extent_Polygon) #  Don't change this
         self.scoring_template = settings_c['scoring_template']
         self.pixel_res = settings_c['purpose_layers']
         self.purpose_layers = settings_c['purpose_layers']
-        # self. = settings_c['pixel_res']
-        # self.years = settings_c['years']
         self.elev_path = settings_c['elev_path']
         self.slope_path = settings_c['slope_path']
         self.coast_path = settings_c['coast_path']
         self.flooded_path = settings_c['flooded_path']
         self.split_folder = settings_c['split_folder']
-        # self.river_mask = settings_c['river_mask']
 
 
 ############################################
-
+# Code to calculate number of datasets
 if __name__ == "__main__":
 
     summary_dict = {}
@@ -670,17 +637,12 @@ if __name__ == "__main__":
             
             print('   '+HF_version)
             summary_dict[HF][HF_version] = {}
-            # print(len(HF_version_dict['pressures']))
             
             num_pressures = 0
             num_datasets = 0
-            # print(HF_version_dict['years'], len(HF_version_dict['years']))
             
             for pressure, pressure_dict in HF_version_dict['pressures'].items():
                 
-                # print(pressure)
-                # print(pressure_dict['datasets'])
-                # print(len(pressure_dict['datasets']))
                 if len(pressure_dict['datasets'])>0:
                     # print(pressure)
                     num_pressures += 1
@@ -689,9 +651,10 @@ if __name__ == "__main__":
                     num_datasets += len(pressure_dict['datasets'])
             summary_dict[HF][HF_version]['num_pressures'] = num_pressures
             summary_dict[HF][HF_version]['num_datasets'] = num_datasets
-            summary_dict[HF][HF_version]['num_years'] = len(HF_version_dict['years_available'])
+            summary_dict[HF][HF_version]['num_updates'] = len(HF_version_dict['years_available'])
 
     print('Analysis of datasets for paper')
     print(summary_dict)
-    print('''For dataset numbers, need to substract 1 in Ecuador and 2 in Peru, as built enviromnets 
-and land use layers (and mining in Peru) come from the same source ''')
+    print('''For dataset numbers, need to subtract 1 in Ecuador and 2 in Peru, as built environments 
+and land use layers (and mining in Peru) come from the same layer
+''')

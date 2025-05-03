@@ -2,7 +2,7 @@
 """
 Module for creating the Human Footprint maps of Peru and Ecuador.
 
-Version 2041001 (Preprint)
+Version 250503 (SciData)
 
 This script will read spatial datasets of pressures, prepared them by
 converting them all to a raster format with identical dimensions, then
@@ -10,12 +10,15 @@ score them to reflect their expected human influence.
 The scored pressures will then be added to calculate a Human Footprint map.
 
 The structure of the module requires the following:
-    - HF_main.py to control the higher level of the process.
+    - HF_main.py (this script) to control the higher level of the process.
     - HF_settings to control the general settings.
     - HF_tasks to call all functions according to the HF workflow.
     - HF_spatial to provide all spatial functions and classes.
     - HF_scores to provide scores of humnan influence.
     - HF_layers for the settings related to layers (e.g. paths).
+    - HF_validation for calculating validation metrics.
+    - HF_purpose_scoring (Optional) is not required to create HF maps. It 
+    compares different HF versions according to the TARA framework.
 
 This is part of the project Life on Land, with UNDP, the Ministries of the
 Environment of each country, and funded by NASA.
@@ -26,12 +29,10 @@ Created on Thu Jun 18 18:26:00 2020
 
 """
 
-# import numpy as np
-
 # multitemporal_layers indicates which layers should be treated as multitemporal.
-# The script will look first here and decide the closest layer in time according
-# to the year being processed. If the layer is not here, it will look directly
-# in the layers
+# The script will look first in multitemporal_layers and decide the closest layer 
+# in time according to the year being processed. 
+# If the layer is not found, it will look in layers_settings
 
 multitemporal_layers = {
 
@@ -50,7 +51,7 @@ multitemporal_layers = {
             'ntl_VIIRS_22',
         ),
         'purp_scores': {
-            'accu_input': 'high',  # comparison to previous version
+            'accu_input': 'high',
             'sustained_input': 'high',
             'well_docmted_input': 'high', 
             'user_friendly_input': 'high',
@@ -195,7 +196,6 @@ multitemporal_layers = {
     },
 
     'Pe_mining_Mapbiopmas': {
-        # 'datasets': (f'Pe_mining_Mapbiopmas_{i}' for i in range(12, 23)),
         'datasets': (
             # 'Pe_mining_Mapbiopmas_00',
             # 'Pe_mining_Mapbiopmas_10',
@@ -232,7 +232,7 @@ multitemporal_layers = {
 }
 
 
-layers_settings = {  # Multitemporal, official, current
+layers_settings = {
 
     # VIIRS NTL
     'ntl_VIIRS_12': {'path': [
@@ -255,88 +255,64 @@ layers_settings = {  # Multitemporal, official, current
         "No_Oficial/NTL/VIIRS_v21/2014_PEC.tif",
     ],
         'scoring': 'ntl_VIIRS_scores',
-        # 'scoring': 'pop_VIIRS_scores',
         'year': 2014,
         'units': 'Digital number',
-        # 'offi': 'low',
-        # 'comparable': 'high',
     },
 
     'ntl_VIIRS_15': {'path': [
         "No_Oficial/NTL/VIIRS_v21/2015_PEC.tif",
     ],
         'scoring': 'ntl_VIIRS_scores',
-        # 'scoring': 'pop_VIIRS_scores',
         'year': 2015,
         'units': 'Digital number',
-        # 'offi': 'low',
-        # 'comparable': 'high',
     },
 
     'ntl_VIIRS_16': {'path': [
         "No_Oficial/NTL/VIIRS_v21/2016_PEC.tif",
     ],
         'scoring': 'ntl_VIIRS_scores',
-        # 'scoring': 'pop_VIIRS_scores',
         'year': 2016,
         'units': 'Digital number',
-        # 'offi': 'low',
-        # 'comparable': 'high',
     },
 
     'ntl_VIIRS_17': {'path': [
         "No_Oficial/NTL/VIIRS_v21/2017_PEC.tif",
     ],
         'scoring': 'ntl_VIIRS_scores',
-        # 'scoring': 'pop_VIIRS_scores',
         'year': 2017,
         'units': 'Digital number',
-        # 'offi': 'low',
-        # 'comparable': 'high',
     },
 
     'ntl_VIIRS_18': {'path': [
         "No_Oficial/NTL/VIIRS_v21/2018_PEC.tif",
     ],
         'scoring': 'ntl_VIIRS_scores',
-        # 'scoring': 'pop_VIIRS_scores',
         'year': 2018,
         'units': 'Digital number',
-        # 'offi': 'low',
-        # 'comparable': 'high',
     },
 
     'ntl_VIIRS_19': {'path': [
         "No_Oficial/NTL/VIIRS_v21/2019_PEC.tif",
     ],
         'scoring': 'ntl_VIIRS_scores',
-        # 'scoring': 'pop_VIIRS_scores',
         'year': 2019,
         'units': 'Digital number',
-        # 'offi': 'low',
-        # 'comparable': 'high',
     },
 
     'ntl_VIIRS_20': {'path': [
         "No_Oficial/NTL/VIIRS_v21/2020_PEC.tif",
     ],
         'scoring': 'ntl_VIIRS_scores',
-        # 'scoring': 'pop_VIIRS_scores',
         'year': 2020,
         'units': 'Digital number',
-        # 'offi': 'low',
-        # 'comparable': 'high',
     },
 
     'ntl_VIIRS_21': {'path': [
         "No_Oficial/NTL/VIIRS_v21/2021_PEC.tif",
     ],
         'scoring': 'ntl_VIIRS_scores',
-        # 'scoring': 'pop_VIIRS_scores',
         'year': 2021,
         'units': 'Digital number',
-        # 'offi': 'low',
-        # 'comparable': 'high',
     },
 
     'ntl_VIIRS_22': {'path': [
@@ -450,34 +426,11 @@ layers_settings = {  # Multitemporal, official, current
             },
         },
 
-    # 'Pe_botaderos_OEFAnooficial_18': {
-    #     'path': ['Oficial/OEFA/Rellenos sanitarios y botaderos.gpkg'],
-    #     'scoring': 'Part_imp_poll_05',
-    #     'year': 2018,
-    #     'units': 'meters',
-    #     'accu_input': 'null',
-    #     'sustained_input': 'low',
-    #     'well_docmted_input': 'null',
-    #     'user_friendly_input': 'low',
-    #     'offi': 'high',
-    #     # 'offi': 'med',
-    #     'comparable': 'low',
-    #     'source': 'OEFA_18',
-    #     'finer':
-    #         {
-    #             'scale': None,
-    #             'res': None,
-    #             'unit': None,
-    #         },
-    #     },
-
 #     #  ## Population
 
     # Official Ecuador
     'Ec_pob_INEC_10': {
-        # 'path': ['Oficial/INEC/INEC2010_Density_250.tif'],
         'path': ['Oficial/INEC/INEC2010_Density_90.tif'],
-        # 'path': ['Oficial/INEC/INEC2010_Density_30.tif'],
         'scoring': 'pop_scores_INEC_INEI',
         'year': 2010,
         'units': 'hab/km2',
@@ -518,19 +471,10 @@ layers_settings = {  # Multitemporal, official, current
             },
     },
 
-
-    # Best
-
     'Ec_Meta_Pob_20':{
         'path': ["No_Oficial/Population/Facebook/ecu_general_2020.tif"],
         'scoring': 'built_Meta_scores',
-        # 'threshold_divide': {
-        #     'l1':(10000,1000000), #  dummy upper value
-        #     'l2':(5000,10000),
-        #     'l3':(0.01,5000),
-            # },
         'year': 2020,
-        # 'check_intersection': True,
         'units': 'hab/pixel',
         'accu_input': 'high',
         'sustained_input': 'high',
@@ -639,8 +583,6 @@ layers_settings = {  # Multitemporal, official, current
         'cat_field': 'cobertura_',
         'year': 1990,
           'units': 'categorical',
-          # 'offi': 'high',
-          # 'comparable': 'low',
           },
     'Ec_cut_MAAE_00': {
         'path': ['Oficial/MAAE/v_ff010_cobertura_vegetal_2000_aPolygon.shp'],
@@ -648,8 +590,6 @@ layers_settings = {  # Multitemporal, official, current
         'cat_field': 'cobertura1',
         'year': 2000,
           'units': 'categorical',
-          # 'offi': 'high',
-          # 'comparable': 'low',
           },
     'Ec_cut_MAAE_08': {
         'path': ['Oficial/MAAE/v_ff010_cobertura_vegetal_2008_aPolygon.shp'],
@@ -657,8 +597,6 @@ layers_settings = {  # Multitemporal, official, current
         'cat_field': 'cobertura_',
         'year': 2008,
           'units': 'categorical',
-          # 'offi': 'high',
-          # 'comparable': 'low',
               },
     'Ec_cut_MAAE_14': {
         'path': ['Oficial/MAAE/v_ff010_cobertura_vegetal_2014_aPolygon.shp'],
@@ -666,8 +604,6 @@ layers_settings = {  # Multitemporal, official, current
         'cat_field': 'cobertura_',
         'year': 2014,
         'units': 'categorical',
-        # 'offi': 'high',
-        # 'comparable': 'low',
         },
     'Ec_cut_MAAE_16': {
         'path': ['Oficial/MAAE/v_ff010_cobertura_vegetal_2016_aPolygon.shp'],
@@ -675,8 +611,6 @@ layers_settings = {  # Multitemporal, official, current
         'cat_field': 'cobertura_',
         'year': 2016,
         'units': 'categorical',
-        # 'offi': 'high',
-        # 'comparable': 'low',
         },
     'Ec_cut_MAAE_18': {
         'path': ['Oficial/MAAE/v_ff010_cobertura_vegetal_2018_aPolygon.shp'],
@@ -684,8 +618,6 @@ layers_settings = {  # Multitemporal, official, current
         'cat_field': 'cobertura0',  # This one is different
         'year': 2018,
         'units': 'categorical',
-        # 'offi': 'high',
-        # 'comparable': 'low',
         },
     'Ec_cut_MAAE_20': {
         'path': ['Oficial/MAAE/v_ff010_cobertura_vegetal_2020_aPolygon.shp'],
@@ -693,8 +625,6 @@ layers_settings = {  # Multitemporal, official, current
         'cat_field': 'ctn2',  # This one is different
         'year': 2020,
         'units': 'categorical',
-        # 'offi': 'high',
-        # 'comparable': 'low',
         },
     'Ec_cut_MAAE_22': {
         'path': ['Oficial/MAAE/v_ff010_cobertura_vegetal_2022_aPolygon.shp'],
@@ -702,8 +632,6 @@ layers_settings = {  # Multitemporal, official, current
         'cat_field': 'ctn2',  # This one is different
         'year': 2022,
         'units': 'categorical',
-        # 'offi': 'high',
-        # 'comparable': 'low',
         },
 
     # Multitemporal / Official Ecuador
@@ -734,8 +662,6 @@ layers_settings = {  # Multitemporal, official, current
         'cat_field': 'cobertura_',
         'year': 2014,
         'units': 'categorical',
-        # 'offi': 'high',
-        # 'comparable': 'low',
         },
     'Ec_bui_MAAE_16': {
         'path': ['Oficial/MAAE/v_ff010_cobertura_vegetal_2016_aPolygon.shp'],
@@ -743,8 +669,6 @@ layers_settings = {  # Multitemporal, official, current
         'cat_field': 'cobertura_',
         'year': 2016,
         'units': 'categorical',
-        # 'offi': 'high',
-        # 'comparable': 'low',
         },
     'Ec_bui_MAAE_18': {
         'path': ['Oficial/MAAE/v_ff010_cobertura_vegetal_2018_aPolygon.shp'],
@@ -752,8 +676,6 @@ layers_settings = {  # Multitemporal, official, current
         'cat_field': 'cobertura0',  # This one is different
         'year': 2018,
         'units': 'categorical',
-        # 'offi': 'high',
-        # 'comparable': 'low',
         },
     'Ec_bui_MAAE_20': {
         'path': ['Oficial/MAAE/v_ff010_cobertura_vegetal_2020_aPolygon.shp'],
@@ -761,8 +683,6 @@ layers_settings = {  # Multitemporal, official, current
         'cat_field': 'ctn2',  # This one is different
         'year': 2020,
         'units': 'categorical',
-        # 'offi': 'high',
-        # 'comparable': 'low',
                         },
     'Ec_bui_MAAE_22': {
         'path': ['Oficial/MAAE/v_ff010_cobertura_vegetal_2022_aPolygon.shp'],
@@ -770,14 +690,11 @@ layers_settings = {  # Multitemporal, official, current
         'cat_field': 'ctn2',  # This one is different
         'year': 2022,
         'units': 'categorical',
-        # 'offi': 'high',
-        # 'comparable': 'low',
         },
 
     'Pe_Censo_Agr_MIDAGRI_18': {
         'path': ['Oficial/MIDAGRI/Cobertura_Agricola/Peru_cober_Aagri_Dist_geowgs84.gpkg'],
         'scoring': 'agr_MINAGRI_scores',
-        # 'cat_field': 'CobVeg2013',
         'year': 2018,
         'units': 'categorical',
         'accu_input': 'null',
@@ -802,8 +719,6 @@ layers_settings = {  # Multitemporal, official, current
         'scoring': 'bui_Mapbiopmas_scores',
         'year': 2012,
         'units': 'categorical',
-        # 'offi': 'med',
-        # 'comparable': 'high',
         },
 
     "Pe_bui_Mapbiopmas_13": {
@@ -811,8 +726,6 @@ layers_settings = {  # Multitemporal, official, current
         'scoring': 'bui_Mapbiopmas_scores',
         'year': 2013,
         'units': 'categorical',
-        # 'offi': 'med',
-        # 'comparable': 'high',
         },
 
     "Pe_bui_Mapbiopmas_14": {
@@ -820,8 +733,6 @@ layers_settings = {  # Multitemporal, official, current
         'scoring': 'bui_Mapbiopmas_scores',
         'year': 2014,
         'units': 'categorical',
-        # 'offi': 'med',
-        # 'comparable': 'high',
         },
 
     "Pe_bui_Mapbiopmas_15": {
@@ -829,8 +740,6 @@ layers_settings = {  # Multitemporal, official, current
         'scoring': 'bui_Mapbiopmas_scores',
         'year': 2015,
         'units': 'categorical',
-        # 'offi': 'med',
-        # 'comparable': 'high',
         },
 
     "Pe_bui_Mapbiopmas_16": {
@@ -838,8 +747,6 @@ layers_settings = {  # Multitemporal, official, current
         'scoring': 'bui_Mapbiopmas_scores',
         'year': 2016,
         'units': 'categorical',
-        # 'offi': 'med',
-        # 'comparable': 'high',
         },
 
     "Pe_bui_Mapbiopmas_17": {
@@ -847,8 +754,6 @@ layers_settings = {  # Multitemporal, official, current
         'scoring': 'bui_Mapbiopmas_scores',
         'year': 2017,
         'units': 'categorical',
-        # 'offi': 'med',
-        # 'comparable': 'high',
         },
 
     "Pe_bui_Mapbiopmas_18": {
@@ -856,8 +761,6 @@ layers_settings = {  # Multitemporal, official, current
         'scoring': 'bui_Mapbiopmas_scores',
         'year': 2018,
         'units': 'categorical',
-        # 'offi': 'med',
-        # 'comparable': 'high',
         },
 
     "Pe_bui_Mapbiopmas_19": {
@@ -865,8 +768,6 @@ layers_settings = {  # Multitemporal, official, current
         'scoring': 'bui_Mapbiopmas_scores',
         'year': 2019,
         'units': 'categorical',
-        # 'offi': 'med',
-        # 'comparable': 'high',
         },
 
     "Pe_bui_Mapbiopmas_20": {
@@ -874,8 +775,6 @@ layers_settings = {  # Multitemporal, official, current
         'scoring': 'bui_Mapbiopmas_scores',
         'year': 2020,
         'units': 'categorical',
-        # 'offi': 'med',
-        # 'comparable': 'high',
         },
 
     "Pe_bui_Mapbiopmas_21": {
@@ -883,8 +782,6 @@ layers_settings = {  # Multitemporal, official, current
         'scoring': 'bui_Mapbiopmas_scores',
         'year': 2021,
         'units': 'categorical',
-        # 'offi': 'med',
-        # 'comparable': 'high',
         },
     
     "Pe_bui_Mapbiopmas_22": {
@@ -892,8 +789,6 @@ layers_settings = {  # Multitemporal, official, current
         'scoring': 'bui_Mapbiopmas_scores',
         'year': 2022,
         'units': 'categorical',
-        # 'offi': 'med',
-        # 'comparable': 'high',
         },
 
 
@@ -903,8 +798,6 @@ layers_settings = {  # Multitemporal, official, current
         'scoring': 'luc_Mapbiopmas_scores',
         'year': 2012,
         'units': 'categorical',
-        # 'offi': 'med',
-        # 'comparable': 'high',
         },
 
     "Pe_luc_Mapbiopmas_13": {
@@ -912,8 +805,6 @@ layers_settings = {  # Multitemporal, official, current
         'scoring': 'luc_Mapbiopmas_scores',
         'year': 2013,
         'units': 'categorical',
-        # 'offi': 'med',
-        # 'comparable': 'high',
         },
 
     "Pe_luc_Mapbiopmas_14": {
@@ -921,8 +812,6 @@ layers_settings = {  # Multitemporal, official, current
         'scoring': 'luc_Mapbiopmas_scores',
         'year': 2014,
         'units': 'categorical',
-        # 'offi': 'med',
-        # 'comparable': 'high',
         },
 
     "Pe_luc_Mapbiopmas_15": {
@@ -930,8 +819,6 @@ layers_settings = {  # Multitemporal, official, current
         'scoring': 'luc_Mapbiopmas_scores',
         'year': 2015,
         'units': 'categorical',
-        # 'offi': 'med',
-        # 'comparable': 'high',
         },
 
     "Pe_luc_Mapbiopmas_16": {
@@ -939,8 +826,6 @@ layers_settings = {  # Multitemporal, official, current
         'scoring': 'luc_Mapbiopmas_scores',
         'year': 2016,
         'units': 'categorical',
-        # 'offi': 'med',
-        # 'comparable': 'high',
         },
 
     "Pe_luc_Mapbiopmas_17": {
@@ -948,8 +833,6 @@ layers_settings = {  # Multitemporal, official, current
         'scoring': 'luc_Mapbiopmas_scores',
         'year': 2017,
         'units': 'categorical',
-        # 'offi': 'med',
-        # 'comparable': 'high',
         },
 
     "Pe_luc_Mapbiopmas_18": {
@@ -957,8 +840,6 @@ layers_settings = {  # Multitemporal, official, current
         'scoring': 'luc_Mapbiopmas_scores',
         'year': 2018,
         'units': 'categorical',
-        # 'offi': 'med',
-        # 'comparable': 'high',
         },
 
     "Pe_luc_Mapbiopmas_19": {
@@ -966,8 +847,6 @@ layers_settings = {  # Multitemporal, official, current
         'scoring': 'luc_Mapbiopmas_scores',
         'year': 2019,
         'units': 'categorical',
-        # 'offi': 'med',
-        # 'comparable': 'high',
         },
 
     "Pe_luc_Mapbiopmas_20": {
@@ -975,8 +854,6 @@ layers_settings = {  # Multitemporal, official, current
         'scoring': 'luc_Mapbiopmas_scores',
         'year': 2020,
         'units': 'categorical',
-        # 'offi': 'med',
-        # 'comparable': 'high',
         },
 
     "Pe_luc_Mapbiopmas_21": {
@@ -984,8 +861,6 @@ layers_settings = {  # Multitemporal, official, current
         'scoring': 'luc_Mapbiopmas_scores',
         'year': 2021,
         'units': 'categorical',
-        # 'offi': 'med',
-        # 'comparable': 'high',
         },
 
     "Pe_luc_Mapbiopmas_22": {
@@ -993,8 +868,6 @@ layers_settings = {  # Multitemporal, official, current
         'scoring': 'luc_Mapbiopmas_scores',
         'year': 2022,
         'units': 'categorical',
-        # 'offi': 'med',
-        # 'comparable': 'high',
         },
 
 
@@ -1003,88 +876,66 @@ layers_settings = {  # Multitemporal, official, current
                   'scoring': 'mining_Mapbiopmas_scores',
                   'year': 2012,
                   'units': 'categorical',
-                  # 'offi': 'med',
-                  # 'comparable': 'high',
                   },
 
     "Pe_mining_Mapbiopmas_13": {'path': ["No_Oficial/Land_use/Mapbiomas/peru_coverage_2013.tif"],
                   'scoring': 'mining_Mapbiopmas_scores',
                   'year': 2013,
                   'units': 'categorical',
-                  # 'offi': 'med',
-                  # 'comparable': 'high',
                   },
 
     "Pe_mining_Mapbiopmas_14": {'path': ["No_Oficial/Land_use/Mapbiomas/peru_coverage_2014.tif"],
                   'scoring': 'mining_Mapbiopmas_scores',
                   'year': 2014,
                   'units': 'categorical',
-                  # 'offi': 'med',
-                  # 'comparable': 'high',
                   },
 
     "Pe_mining_Mapbiopmas_15": {'path': ["No_Oficial/Land_use/Mapbiomas/peru_coverage_2015.tif"],
                   'scoring': 'mining_Mapbiopmas_scores',
                   'year': 2015,
                   'units': 'categorical',
-                  # 'offi': 'med',
-                  # 'comparable': 'high',
                   },
 
     "Pe_mining_Mapbiopmas_16": {'path': ["No_Oficial/Land_use/Mapbiomas/peru_coverage_2016.tif"],
                   'scoring': 'mining_Mapbiopmas_scores',
                   'year': 2016,
                   'units': 'categorical',
-                  # 'offi': 'med',
-                  # 'comparable': 'high',
                   },
 
     "Pe_mining_Mapbiopmas_17": {'path': ["No_Oficial/Land_use/Mapbiomas/peru_coverage_2017.tif"],
                   'scoring': 'mining_Mapbiopmas_scores',
                   'year': 2017,
                   'units': 'categorical',
-                  # 'offi': 'med',
-                  # 'comparable': 'high',
                   },
 
     "Pe_mining_Mapbiopmas_18": {'path': ["No_Oficial/Land_use/Mapbiomas/peru_coverage_2018.tif"],
                   'scoring': 'mining_Mapbiopmas_scores',
                   'year': 2018,
                   'units': 'categorical',
-                  # 'offi': 'med',
-                  # 'comparable': 'high',
                   },
 
     "Pe_mining_Mapbiopmas_19": {'path': ["No_Oficial/Land_use/Mapbiomas/peru_coverage_2019.tif"],
                   'scoring': 'mining_Mapbiopmas_scores',
                   'year': 2019,
                   'units': 'categorical',
-                  # 'offi': 'med',
-                  # 'comparable': 'high',
                   },
 
     "Pe_mining_Mapbiopmas_20": {'path': ["No_Oficial/Land_use/Mapbiomas/peru_coverage_2020.tif"],
                   'scoring': 'mining_Mapbiopmas_scores',
                   'year': 2020,
                   'units': 'categorical',
-                  # 'offi': 'med',
-                  # 'comparable': 'high',
                   },
 
     "Pe_mining_Mapbiopmas_21": {'path': ["No_Oficial/Land_use/Mapbiomas/peru_coverage_2021.tif"],
                   'scoring': 'mining_Mapbiopmas_scores',
                   'year': 2021,
                   'units': 'categorical',
-                  # 'offi': 'med',
-                  # 'comparable': 'high',
                   },
 
     "Pe_mining_Mapbiopmas_22": {'path': ["No_Oficial/Land_use/Mapbiomas/peru_coverage_2022.tif"],
                   'scoring': 'mining_Mapbiopmas_scores',
                   'year': 2022,
                   'units': 'categorical',
-                  # 'offi': 'med',
-                  # 'comparable': 'high',
                   },
 
     # Multitemporal
@@ -1291,7 +1142,8 @@ layers_settings = {  # Multitemporal, official, current
                 'unit': None,
             },
         },
-    # 'Pe_rios_MINAM_15': {
+
+        
     'Pe_indirect': {
         'path': ['Oficial/MINAM/Geoservidor/Cobertura_Vegetal/mapa_cobertura_vegetal_2015/Rios_CobVeg_180615.shp'],
         'scoring': 'indirect_scores',
@@ -1314,7 +1166,6 @@ layers_settings = {  # Multitemporal, official, current
 
     #  # Best Ecuador
       'Ec_vias_primarias_OSM_21': {
-          # 'path': ["No_Oficial/OSM/ecuador_vias/primaria.shp"],
           'path': ["No_Oficial/OSM/ecuador_vias/primaria.gpkg"],
           'scoring': 'road_scores_l1',
           'year': 2021,
@@ -1861,26 +1712,6 @@ layers_settings = {  # Multitemporal, official, current
                 'unit': None,
             },
         },
-
-    # 'Ec_plataformas_MERNNR_20': {
-    #     'path': ["Oficial/MERNNR/Infraestructura_Sector_Hidrocarburos/plataformas.gpkg"],
-    #     'scoring': 'Infr_imp_poll_scores_05',
-    #     'year': 2020,
-    #     'units': 'meters',
-    #     'accu_input': 'null',
-    #     'sustained_input': 'low',
-    #     'well_docmted_input': 'null',
-    #     'user_friendly_input': 'low',
-    #     'offi': 'high',
-    #     'comparable': 'low',
-    #     'source': 'MERNNR_20',
-    #     'finer':
-    #         {
-    #             'scale': None,
-    #             'res': None,
-    #             'unit': None,
-    #         },
-    #     },
 
     'Ec_ductos_MERNNR_20': {
         'path': ["Oficial/MERNNR/Infraestructura_Sector_Hidrocarburos/Ductos3.shp"],

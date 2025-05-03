@@ -2,7 +2,7 @@
 """
 Module for creating the Human Footprint maps of Peru and Ecuador.
 
-Version 2041001 (Preprint)
+Version 250503 (SciData)
 
 This script will read spatial datasets of pressures, prepared them by
 converting them all to a raster format with identical dimensions, then
@@ -10,12 +10,15 @@ score them to reflect their expected human influence.
 The scored pressures will then be added to calculate a Human Footprint map.
 
 The structure of the module requires the following:
-    - HF_main.py to control the higher level of the process.
+    - HF_main.py (this script) to control the higher level of the process.
     - HF_settings to control the general settings.
     - HF_tasks to call all functions according to the HF workflow.
     - HF_spatial to provide all spatial functions and classes.
     - HF_scores to provide scores of humnan influence.
     - HF_layers for the settings related to layers (e.g. paths).
+    - HF_validation for calculating validation metrics.
+    - HF_purpose_scoring (Optional) is not required to create HF maps. It 
+    compares different HF versions according to the TARA framework.
 
 This is part of the project Life on Land, with UNDP, the Ministries of the
 Environment of each country, and funded by NASA.
@@ -23,15 +26,11 @@ Environment of each country, and funded by NASA.
 Created on Thu Jun 18 18:26:00 2020
 
 @author: Jose Aragon-Osejo aragon@unbc.ca / jose.luis.aragon.ec@gmail.com
-
 """
 
 import os
 import copy
-import math
-# import sys
 import numpy as np
-# from math import sqrt
 from osgeo import gdal, ogr, osr
 import HF_scores
 from HF_layers import layers_settings
@@ -386,7 +385,7 @@ def copy_raster(path, base_raster, Float=True, array=False):
 
 
 def createRasterFromCopy(fn, ds, data):
-    """ Similar method as previous, merge """ #  TODO
+    """ Similar method as previous, merge """ 
     driver = gdal.GetDriverByName('GTiff')
     outds = driver.CreateCopy(fn, ds, strict=0)
     band_out = outds.GetRasterBand(1)
@@ -399,7 +398,7 @@ def createRasterFromCopy(fn, ds, data):
 
 def warp_raster(layer, settings, base_path, pressure_path, scoring_template,
                 scoring_method, main_folder):#, raster_list=False
-    #  TODO don't use raster_list
+    
     """
     Warps a raster to match base raster's settings.
     Special cases are considered.
@@ -428,25 +427,11 @@ def warp_raster(layer, settings, base_path, pressure_path, scoring_template,
     country = settings.country
 
     # Search for pressure layer if exists
-    # if scoring_method != 'GHS_BUILT_scores':
     in_paths = layers_settings[layer]["path"]
     in_paths = [f'{main_folder}{i}' for i in in_paths]
-    # else:
-    #     if country == 'Ecuador':
-    #         in_paths =  layers_settings[layer]["path_Ec"]
-    #     elif country == 'Peru':
-    #         in_paths =  layers_settings[layer]["path_Pe"]
-    #     in_paths = [f'{main_folder}{i}' for i in in_paths]
-    # new_in_paths = [] # TODO check if necessary, and more than 1 path
 
     # Loop over each path in layer
     for in_path in in_paths:
-
-        # Names
-        # in_path_str = in_path.split('/')[-1].replace('.', '_')
-        # layer_name = '_'.join(in_path_str.split('_')[:-1])
-        # if not (len(in_paths) > 1):
-        #     layer_name = layer
 
         final_path = pressure_path
         prepared_exists = os.path.isfile(final_path)
@@ -454,12 +439,8 @@ def warp_raster(layer, settings, base_path, pressure_path, scoring_template,
         if not prepared_exists:
 
             print(f'            Warping {layer}')
-            # print(f'            Warping {layer_name}')
 
             # Get resampling mode for warping
-            # if scoring_method == 'pop_scores_Fcbk':
-            #     resampling_method = 'sum'  #TODO why here and not settings?
-            # else:
             scores_full = getattr(HF_scores, settings.scoring_template)
             scores = scores_full[scoring_method]
             resampling_method = scores['resampling_method']
@@ -469,50 +450,16 @@ def warp_raster(layer, settings, base_path, pressure_path, scoring_template,
 
             # 
             base_raster = rxr.open_rasterio(base_path)
-            # nd = base_raster.rio.nodata
             raster_to_warp = rxr.open_rasterio(in_path)
             raster_to_warp = raster_to_warp.astype('float32')
             nd_dataset = raster_to_warp.rio.nodata
             raster_to_warp = raster_to_warp.where(raster_to_warp != nd_dataset, 0)
-            # raster_to_warp = raster_to_warp.where(raster_to_warp != -9999, -9998)
             warped_raster = raster_to_warp.rio.reproject_match(base_raster, resampling=rm, nodata=-9999)
-            # if nd_dataset != np.float64('nan'): 
-            #     print('y')
-            #     warped_raster.rio.write_nodata(nd_dataset)
             warped_raster.rio.to_raster(final_path)
 
-
-            # # If nodata value in warp is nan, replace with 0
-            # in_raster = RASTER(in_path)
-            # if in_raster.nodata and math.isnan(in_raster.nodata):
-            #     final_raster = RASTER(final_path)
-            #     final_raster.get_array()
-            #     final_ar = final_raster.array.copy()
-            #     final_ar[final_ar == nd] = 0
-            #     save_array(final_raster.bd, final_ar)
-            #     final_raster.close()
-            # in_raster.close()
-
-            # # If it's hab/pixel, transform to population density
-            # # dividing array by km2 area
-            # if scoring_method in ('pop_scores', 'pop_scores_Fcbk'):
-            #     final_raster = RASTER(final_path)
-            #     final_raster.get_array()
-            #     final_ar = final_raster.array.copy()
-            #     xres = abs(final_raster.resX) / 1000
-            #     yres = abs(final_raster.resY) / 1000
-            #     area = xres * yres
-            #     final_ar = final_ar / area
-            #     save_array(final_raster.bd, final_ar)
-            #     final_raster.close()
-
         else:
-            # Adding raster to list of rasters to return
-            # new_in_paths.append(in_path)
-            print(f'            {layer} already prepared')
 
-    # if raster_list:
-    #     return new_in_paths
+            print(f'            {layer} already prepared')
 
 
 def small_warp_raster(layer, base_path, in_path, out_path, settings, nd=99,
@@ -587,7 +534,6 @@ def reproject_shapefile(in_path, out_path, layer, settings):
             geom_type = 'MULTILINESTRING'
         elif geom_type in (3, 6):
             geom_type = 'MULTIPOLYGON'
-        # print('geom_type', geom_type)
 
         # Create command string
         c1 = ['ogr2ogr','-f', '"GPKG"',
@@ -665,7 +611,6 @@ def rasterize_shapefile(in_path, out_path, layer, settings, base_path):
             scores = scores_full[scoring_method]
 
             # Create new field
-            # field_name = ogr.FieldDefn('Use_int', ogr.OFTInteger)
             field_name = ogr.FieldDefn('Use_int', ogr.OFTReal)
             field_name.SetPrecision(3)
             try:
@@ -1049,15 +994,12 @@ def compute_cost_path(cost_raster_path, starting_points_gpkg_path, output_raster
                 bbox=costsurface.rio.bounds())
         else:
             # Read polygon from geopackage
-            # poly_gpkg_path = "path/to/polygon.gpkg"
             poly_gdf = gpd.read_file(poly_mask)
 
             # Read points from geopackage
-            # points_gpkg_path = "path/to/points.gpkg"
             points_gdf = gpd.read_file(starting_points_gpkg_path)
 
             # Spatial join to get points within polygon
-            # destinations = gpd.sjoin(points_gdf, poly_gdf, op="within")
             destinations = gpd.sjoin(points_gdf, poly_gdf, predicate="within")
 
         start_cells = find_location_cells(destinations, costsurface)
@@ -1299,7 +1241,6 @@ def create_proximity_raster_from_pixels(layer, year, settings, base_path,
             ave_walking = 4 #  average walking speed in km/h
 
             # Calculate speed based on conditions
-            # print('flooded t')
             base_raster = RASTER(base_path)
             base_array = base_raster.get_array()
             nd = base_raster.nodata
@@ -1316,13 +1257,11 @@ def create_proximity_raster_from_pixels(layer, year, settings, base_path,
             base_raster.close()
             flooded, base_array = None, None
 
-            # print('crops t')
             crops = RASTER(crops_path).get_array().astype(int)
             speed_ar = np.where(crops == 1, 10.560326*np.power(slope,-0.199553),speed_ar)
             RASTER(crops_path).close()
             crops = None
 
-            # print('rivers t')
             elevation = RASTER(elev_path).get_array().astype(int)
             elevation[elevation<0] = 0
             rivers = RASTER(rivers_path).get_array().astype(int)
@@ -1361,34 +1300,29 @@ def create_proximity_raster_from_pixels(layer, year, settings, base_path,
             RASTER(elev_path).close()
             rivers, elevation, slope = None, None, None
 
-            # print('coast t')
             coast = RASTER(coast_path).get_array().astype(int)
             speed_ar = np.where(coast == 1, 20, speed_ar)
             RASTER(coast_path).close()
             coast = None
 
             if in_path_l3:
-                # print('roads3 t')
                 roads3 = RASTER(in_path_l3).get_array().astype(int)
                 speed_ar = np.where(roads3 == 1, 30, speed_ar)
                 RASTER(in_path_l3).close()
                 roads3 = None
 
             if in_path_l2:
-                # print('roads2 t')
                 roads2 = RASTER(in_path_l2).get_array().astype(int)
                 speed_ar = np.where(roads2 == 1, 40, speed_ar)
                 RASTER(in_path_l2).close()
                 roads2 = None
 
             if in_path_l1:
-                # print('roads1 t')
                 roads1 = RASTER(in_path_l1).get_array().astype(int)
                 speed_ar = np.where(roads1 == 1, 60, speed_ar)
                 RASTER(in_path_l1).close()
                 roads1 = None
 
-            # print('built t')
             built = RASTER(built_path).get_array().astype(int)
             speed_ar = np.where(built == 1, 0, speed_ar)
             RASTER(built_path).close()
@@ -1396,7 +1330,6 @@ def create_proximity_raster_from_pixels(layer, year, settings, base_path,
 
             # If a value is negative (happens on edges with voids of data),
             # change to 4 as average walking speed
-            # print('               Changing issues to average walking')
             bads = speed_ar<0
             speed_ar[bads] = ave_walking
             bads = None
@@ -1414,7 +1347,6 @@ def create_proximity_raster_from_pixels(layer, year, settings, base_path,
             # allows to keep one extra digit with ushort type
             speed_ar[goods] = np.divide(diredist*36, speed_ar[goods]).astype(int)
 
-            # speed_ar[goods] = np.multiply(speed_ar[goods], )
             goods = None
             del goods
 
@@ -1458,7 +1390,6 @@ def create_proximity_raster_from_pixels(layer, year, settings, base_path,
                     
                     file_name_with_ext = os.path.basename(polygon_path)
                     name = os.path.splitext(file_name_with_ext)[0]
-                    # name = polygon.split('.')[0][-2:]
                     print(f'   Processing {name}')
 
                     # Split times raster by previously created polygons
@@ -1598,8 +1529,6 @@ def addRasters(year, settings, results_folder, purpose, scoring_template, res, m
     extent = settings.extent_Polygon
     extent_str = extent.split('/')[-1].split('.')[-2]
 
-    # results_folder = r'G:\Conservation Solution Lab\People\Jose\OneDrive - UNBC\LoL_Data\Peru_HH\HF_maps\b05_HF_maps\Pe_20230605_183825_SDG15_Peru_IGN//'
-
     for pressure in settings.purpose_layers[purpose]['pressures']:
 
         # Continue if there are layers in pressures
@@ -1648,7 +1577,6 @@ def addRasters(year, settings, results_folder, purpose, scoring_template, res, m
 
         # Compress result and delete previous version
         compress(added_path)
-        # os.remove(added_path_uncomp)
 
     return added_path
 
@@ -1747,12 +1675,6 @@ adding metadata and creating pyramids""")
                 
             # Create pyramids
             with rasterio.open(tif_path, 'r+') as dataset:
-                # if dataset.dtypes[0] == 'float32':
-                #     resampling_method = rasterio.enums.Resampling.nearest
-                # else:
-                #     resampling_method = rasterio.enums.Resampling.nearest
-
-                # dataset.build_overviews([2, 4, 8, 16], resampling=resampling_method)
                 dataset.build_overviews([2, 4, 8, 16], resampling=rasterio.enums.Resampling.nearest)
 
 

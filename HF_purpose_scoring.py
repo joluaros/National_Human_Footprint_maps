@@ -2,20 +2,22 @@
 """
 Module for creating the Human Footprint maps of Peru and Ecuador.
 
-Version 2041001 (Preprint)
+Version 250503 (SciData)
 
-This script will read spatial datasets of pressures, prepared them by
-converting them all to a raster format with identical dimensions, then
-score them to reflect their expected human influence.
-The scored pressures will then be added to calculate a Human Footprint map.
+This script will compare different HF versions according to the TARA framework.
+It is part of the module for creating HF maps but is executed independently.
+It requires other scripts on the module.
 
-The structure of the module requires the following:
-    - HF_main.py to control the higher level of the process.
+Structure of the module:
+    - HF_main.py (this script) to control the higher level of the process.
     - HF_settings to control the general settings.
     - HF_tasks to call all functions according to the HF workflow.
     - HF_spatial to provide all spatial functions and classes.
     - HF_scores to provide scores of humnan influence.
     - HF_layers for the settings related to layers (e.g. paths).
+    - HF_validation for calculating validation metrics.
+    - HF_purpose_scoring (this script).
+    
 
 This is part of the project Life on Land, with UNDP, the Ministries of the
 Environment of each country, and funded by NASA.
@@ -25,15 +27,6 @@ Created on Thu Jun 18 18:26:00 2020
 @author: Jose Aragon-Osejo aragon@unbc.ca / jose.luis.aragon.ec@gmail.com
 
 """
-
-# https://medium.com/python-in-plain-english/radar-chart-basics-with-pythons-matplotlib-ba9e002ddbcd
-# https://www.pythoncharts.com/matplotlib/radar-charts/
-
-
-# import sys
-# scripts_path = 'E:\\OneDrive - UNBC\\Scripts'
-# if scripts_path not in sys.path:
-#     sys.path.append(scripts_path)
 
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -48,200 +41,6 @@ import matplotlib.lines as mlines
 from matplotlib.gridspec import GridSpec
 from matplotlib.colors import LinearSegmentedColormap
 
-
-# def bar_plot(df, title, keep_fields=None):
-        
-#     if keep_fields:
-#         df = df.loc[:, keep_fields]
-    
-#     # Plotting
-#     # fig, ax = plt.subplots()
-#     fig, ax = plt.subplots(figsize=(12, 6))
-    
-#     # Width of each bar group
-#     bar_width = 0.1
-    
-#     # Positions for the bars
-#     x = np.arange(len(df.index))
-    
-#     # Iterate through each attribute
-#     for i, attribute in enumerate(df.columns):
-#         # Plotting the bars for each attribute
-#         ax.bar(x + i * bar_width, df[attribute], bar_width, label=attribute)
-    
-#     # Adding labels and legend
-#     ax.set_xlabel('Datasets')
-#     ax.set_ylabel('Purpose scoring')
-#     ax.set_title(title)
-#     ax.set_xticks(x + bar_width * (len(df.columns) - 1) / 2)
-#     ax.set_xticklabels(df.index)
-#     ax.legend()
-    
-#     # Rotate x-axis labels for better readability
-#     plt.xticks(rotation=45, ha='right')
-    
-#     # Show plot
-#     plt.show()
-
-
-# def plot_by_dataset(purpose_scores, map_setting):
-    
-    
-#     # cols = ['Fine-resolution', 'Nationally-validated', 'Internationally-comparable', 'Multitemporal', 'Current']
-    
-#     cols = ['Nationally-validated']
-    
-#     for col in cols:
-#         # print(purpose_scores['Built_Environments'][col])
-        
-#         dfs = [purpose_scores[pressure][[col]].dropna() for pressure in purpose_scores.keys()]
-#         df = pd.concat(dfs)
-        
-#         title = f'{map_setting} HF scores of {col}'
-#         bar_plot(df, title)
-
-
-# def plot_input_analysis(df_pivot_pressures, pressures, maps_list):
-
-#     # Set up graph 
-#     desired_figsize_mm = (88, 70)  # Set your desired figure size in mm (width, height)
-#     # Convert mm to inches (1 inch = 25.4 mm)
-#     desired_figsize = (desired_figsize_mm[0] / 25.4, desired_figsize_mm[1] / 25.4)
-#     # desired_figsize=(3.46*2, 4)
-#     desired_font = {'family': 'sans-serif', 'weight': 'normal', 'size': 5}
-#     plt.rcParams['figure.dpi'] = 300
-#     plt.rcParams['savefig.dpi'] = 300
-#     plt.rcParams.update({'font.size': 5})
-#     plt.rc('font', **desired_font)
-
-#     # create_hist = True
-#     # create_hist = False
-
-#     # Create a figure and GridSpec layout
-#     fig = plt.figure(figsize=desired_figsize)
-#     name = 'Input_analysis_scoring'
-#     if fig_letter:
-#         name2 = fig_letter + " " + name
-#         # plt.text(-0.16, 1.12, fig_letter, fontsize=7, transform=plt.gca().transAxes,)# weight='bold'
-#     fig.suptitle(f"{name2.replace('_', ' ')} {country}", fontsize=7)
-    
-
-#     # Create subplots
-#     gs = GridSpec(1, 1)
-#     ax_heatmap1 = fig.add_subplot(gs[0, 0])
-#     # ax_heatmap2 = fig.add_subplot(gs[0, 9:])
-
-#     # # Create subplots
-#     # gs = GridSpec(1, 14)
-#     # ax_heatmap1 = fig.add_subplot(gs[0, :9])
-#     # ax_heatmap2 = fig.add_subplot(gs[0, 9:])
-
-#     # # Create subplots
-#     # gs = GridSpec(1, 4) if create_hist else GridSpec(1, 3)
-#     # ax_heatmap1 = fig.add_subplot(gs[0, 0:2])
-#     # ax_heatmap2 = fig.add_subplot(gs[0, 2])
-
-#     # if create_hist: 
-        
-#     #     # Create histogram as barplot
-#     #     ax_hist_row = fig.add_subplot(gs[0, 3])
-        
-#     #     # Bin the data    
-#     #     min_value = 0
-#     #     max_value = 3
-#     #     bin_edges = pd.interval_range(start=min_value, end=max_value, freq=0.5)
-#         # df['bin'] = pd.cut(df['average'], bins=bin_edges)
-#     #     bin_counts = df['bin'].value_counts().sort_index()
-        
-#     #     # Create a DataFrame for plotting
-#     #     plot_df = pd.DataFrame({'bin': bin_counts.index.astype(str), 'frequency': bin_counts.values})
-#     #     bin_order = [f"({i:.1f}, {i + 0.5:.1f}]" for i in np.arange(max_value-.5, min_value-.5, -0.5)]
-#     #     plot_df['bin'] = pd.Categorical(plot_df['bin'], categories=bin_order, ordered=True)
-#     #     plot_df = plot_df.sort_values('bin')
-        
-#     #     # Plot histogram
-#     #     sns.barplot(x='frequency', y='bin', data=plot_df, orient='h', ax=ax_hist_row, color='lightgrey')
-#     #     ax_hist_row.set_title('Input scoring histogram', fontsize=5)
-#     #     ax_hist_row.set(ylabel=None)
-#     #     ax_hist_row.set_yticks(np.arange(-0.5, 6, 1))
-#     #     ax_hist_row.set_yticklabels([])
-    
-#     #     # Change width of lines
-#     #     sns.despine(ax=ax_hist_row, top=True, right=True)
-#     #     for spine in ax_hist_row.spines.values():
-#     #         spine.set_linewidth(0.6) 
-
-#     # # Pivot tables for heatmaps\
-#     # # Remove accurate and complete as they are analyzed differently
-#     # chars_list = [char for char in purposes_scoring+input_analysis_scoring if char not in ['Accurate', 'Complete']]
-#     # df_pivot_pressures = pivot_table(df, pressures, chars_list)
-#     # name = f'Input_analysis_heatmap_values_pressures_{country}'
-#     # print_save(df_pivot_pressures, scoring_folder, name, print_=False)
-#     # # df_pivot_HF_maps = pivot_table(df, maps_list, chars_list)    
-
-#     # Plot heatmaps on the second row
-#     annot = True
-#     xticks_rotation = 90
-#     # xticks_rotation = 0
-#     colors = ['#d73027', '#fdae61', '#ffffbf', '#a1d99b', '#1a9850']
-#     cmap = LinearSegmentedColormap.from_list('RdYlGr', colors)
-#     # cmap = 'RdYlBu'
-    
-#     # Heatmap pressures 
-#     sns.heatmap(df_pivot_pressures, ax=ax_heatmap1, cmap=cmap, annot=annot, cbar=True, vmin=0, vmax=3)
-#     ax_heatmap1.set(ylabel=None)
-#     ax_heatmap1.set(xlabel=None)
-#     # # ax_heatmap1.xticks(rotation=xticks_rotation)
-#     ax_heatmap1.set_xticklabels([format_labet(label.get_text()) for label in ax_heatmap1.get_xticklabels()], rotation=xticks_rotation)
-#     ax_heatmap1.set_yticklabels([format_labet(label.get_text()) for label in ax_heatmap1.get_yticklabels()])
-#     # # ax_heatmap1.set_xticklabels([label.get_text().replace('-', '\n').replace('_', '\n') for label in ax_heatmap1.get_xticklabels()])
-#     # # ax_heatmap1.set_yticklabels([label.get_text().replace('-', '\n').replace('_', '\n') for label in ax_heatmap1.get_yticklabels()])
-#     # # ax_heatmap1.set_yticklabels([label.get_text().split('_', 1)[0] .replace('_', '-')+ '\n' + label.get_text().replace('_', '-').split('-', 1)[1] if '-' in label.get_text() else label.get_text() for label in ax_heatmap1.get_yticklabels()])
-
-#     # Bold last column and row
-#     n_rows, n_cols = df_pivot_pressures.shape
-#     for text in ax_heatmap1.texts:
-#         row, col = divmod(ax_heatmap1.texts.index(text), n_cols)
-#         if row == n_rows - 1 or col == n_cols - 1:
-#             text.set_fontweight('bold')
-
-#     # Bold the tick labels for the last row and last column
-#     # X-axis (columns)
-#     for tick in ax_heatmap1.get_xticklabels():
-#         if tick.get_text() == 'Pressures\nAverage':  # Bold last column tick label
-#             tick.set_fontweight('bold')
-    
-#     # Y-axis (rows)
-#     for tick in ax_heatmap1.get_yticklabels():
-#         if tick.get_text() == 'Characteristics\nAverage':  # Bold last row tick label
-#             tick.set_fontweight('bold')
-
-
-#     # ax_heatmap1.set_title('Scoring heatmap by pressure', fontsize=5)
-    
-#     # # Heatmap HF maps
-#     # sns.heatmap(df_pivot_HF_maps, ax=ax_heatmap2, cmap=cmap, annot=annot, cbar=True, vmin=0, vmax=3)
-#     # # ax_heatmap2.collections[0].colorbar.set_ticks([])
-#     # cbar = ax_heatmap2.collections[0].colorbar
-#     # cbar.ax.tick_params(length=0)
-#     # ax_heatmap2.set(yticks=[], ylabel=None)
-#     # ax_heatmap2.set(xlabel=None)
-#     # ax_heatmap2.set_xticklabels([format_labet(label.get_text() )for label in ax_heatmap2.get_xticklabels()], rotation=xticks_rotation)
-#     # # ax_heatmap2.set_xticklabels([label.get_text().replace('-', '\n').replace('_', '\n') for label in ax_heatmap2.get_xticklabels()])
-#     # ax_heatmap2.set_title('Scoring heatmap by HF map', fontsize=5)
-    
-#     # Adjust layout and show
-#     plt.tight_layout()
-#     # plt.show()
-
-#     # Save
-#     fig_path = f'{scoring_folder}/{name}_{country}.png'
-#     plt.savefig(fig_path, bbox_inches='tight')
-#     fig_path = f'{scoring_folder}/{name}_{country}.svg'
-#     plt.savefig(fig_path, bbox_inches='tight', transparent=True)
-#     fig_path = f'{scoring_folder}/{name}_{country}.eps'
-#     plt.savefig(fig_path, bbox_inches='tight')
-#     plt.show()
 
 
 def get_validation_df(map_settings, main_folder):
@@ -260,9 +59,6 @@ def get_validation_df(map_settings, main_folder):
 
 
 def weighted_average(df, pressure):
-    
-    # print()
-    # print(df.info())
 
     if pressure in ('Built_Environments', 'Land_Cover',
                     'Electrical_Infrastructure'):
@@ -275,19 +71,16 @@ def weighted_average(df, pressure):
 
     index_list = df.index.tolist()
     col_list = df.columns.tolist()
-    # col_list.remove('Source')
     av_row = []
 
     for col in col_list: # if col!='Source'
         av_sum = count = 0
-        # print(f'{col=}')
 
         for index, index_name in enumerate(index_list):
 
             cel_val = df.loc[index_name, col]
             if cel_val==None: cel_val=np.nan
             weight = weights[index]
-            # print(f'{cel_val=}')
             if not np.isnan(cel_val):
                 av_sum += cel_val * weight
                 count += weight
@@ -296,7 +89,6 @@ def weighted_average(df, pressure):
             av_row.append(av_sum/count)
 
         else:
-            # print(0)
             av_row.append(np.nan)
 
     # Add the result as a new row at the end of the DataFrame
@@ -323,8 +115,6 @@ def calculate_scores(pressure, map_setting, ps, settings, purposes_scoring, inpu
     df = pd.DataFrame(columns=df_col_list)
 
     for dataset in settings.purpose_layers[map_setting]['pressures'][pressure]['datasets']:
-        
-        # print(f'{map_setting=} {dataset=}')
 
         s_Nat_val = s_Real = s_Uptod = s_Mult = s_plete = s_Local = \
             s_parable = None
@@ -363,11 +153,8 @@ def calculate_scores(pressure, map_setting, ps, settings, purposes_scoring, inpu
 
         # Multitemporal score
         l_lim = 2012  # lower limit for time range
-        # u_lim = 2020
         if not years:
-            # print(f'{dataset=}')
             s_Mult = ps['low']
-            # s_Mult = 1
         else:
             years = np.array(years)
             years = years[years>=l_lim]
@@ -437,7 +224,6 @@ def calculate_scores(pressure, map_setting, ps, settings, purposes_scoring, inpu
                 scores_list.append(scores_dict[purpose])
 
         # Append to pressure df
-        # print(scores_list)
         df.loc[dataset] = scores_list
 
     dataset_scores = df.copy()
@@ -512,46 +298,6 @@ def pivot_table(df, X_axis, chars_list, source=False):
     df_pivot = pd.concat([df_pivot, mean_row], ignore_index=False)
 
     return round(df_pivot,2)
-    
-    # # Change Yes to Yes_weighted when datasets came from extensive layers
-    # dataset_names = [
-    #     'Ec_bui_MAAE',
-    #     'Ec_cut_MAAE',
-    #     'Ec_World_pop_10',
-    #     'ntl_VIIRS',
-    #     'Ec_pob_INEC_10',
-    #     'Pe_bui_Mapbiopmas',
-    #     'Pe_luc_Mapbiopmas',
-    #     'Pe_World_pop_07',
-    #     'bui_Pe_a_urbana_MINAM_11',
-    #     'Pe_Censo_Agr_MIDAGRI_18',
-    #     'Pe_pob_INEI_17',
-    #     ]
-
-    # for pressure in X_axis:
-    #     df.loc[(df.index.isin(dataset_names)) & (df[pressure] == 'Yes'), pressure] = 'Yes_weighted'
-    # df_melted = pd.melt(df, id_vars=X_axis,
-    #                     value_vars=chars_list,
-    #                     var_name='Characteristic', value_name='Score')
-    # df_filtered = pd.melt(df_melted, id_vars=['Characteristic', 'Score'],
-    #                       value_vars=X_axis,
-    #                       var_name='X_axis', value_name='Present')
-    # df_filtered = df_filtered[df_filtered['Present'].isin(['Yes', 'Yes_weighted'])]
-    # df_filtered['Weight'] = 1
-    # # Change here if weighted average
-    # # df_filtered.loc[(df_filtered['Present'] == 'Yes_weighted'), 'Weight'] = 4
-    # df_filtered.loc[(df_filtered['Present'] == 'Yes_weighted'), 'Weight'] = 1
-    # def weighted_mean(df, value_col, weight_col):
-    #     return np.average(df[value_col], weights=df[weight_col])
-    # df_grouped = df_filtered.groupby(['Characteristic', 'X_axis'], as_index=False)[['Score', 'Weight']].apply(
-    #     lambda x: pd.Series({
-    #         'Score': weighted_mean(x, 'Score', 'Weight')
-    #     })
-    # )
-    # df_grouped.reset_index(drop=True, inplace=True)
-    # df_pivot = df_grouped.pivot(index='Characteristic', columns='X_axis', values='Score')
-    
-
 
 
 def format_labet(label):
@@ -576,7 +322,13 @@ def create_heatmap_ax(df, ax='ax_heatmap1', cmap='cmap', annot='annot',
                       xticks_rotation=0):
 
     # Heatmap settings 
-    sns.heatmap(df, ax=ax, cmap=cmap, annot=annot, cbar=cbar, cbar_kws={"pad": .02}, vmin=0, vmax=3)
+    heatmap = sns.heatmap(df, ax=ax, cmap=cmap, annot=annot, cbar=cbar, 
+                      cbar_kws={"pad": 0.02}, vmin=0, vmax=3)
+
+    # Adjust the color bar to place the label on top and make it horizontal
+    cbar = heatmap.collections[0].colorbar
+    cbar.ax.set_title("Score", loc='center', pad=4, x=1.6, fontsize=5)
+    
     ax.set(ylabel=None)
     ax.set(xlabel=None)
     ax.set_xticklabels([format_labet(label.get_text()) for label in ax.get_xticklabels()], rotation=xticks_rotation)
@@ -604,38 +356,25 @@ def create_heatmap_ax(df, ax='ax_heatmap1', cmap='cmap', annot='annot',
     if ticks == 'No': ax.set(yticks=[])
 
 
-def reorder_cols(df):
+def reorder_cols(df, subtxt):
     
-    # Sort by list of rows
-    # ORder from Pe and Ec averages 
-    sorted_rows = [  
-        'Multitemporality',        
-        'Accuracy_as_input', 
-        'Fine-resolution',        
-        'Current',
-        'Internationally-comparable', 
-        'Well_docmted_input',
-        'Nationally-validated',
-        'User_friendly_input',
-        'Sustained_input', 
-        'Characteristics\nAverage',
-        ]
+    # Sort rows by characteristics average
+    av_row = df.index.tolist()[-1]
+    rows_to_sort = df.index[df.index != av_row]  # Exclude 'Sources average'
+    if subtxt=='sources':
+        sources_av_row_values = df.loc[rows_to_sort, 'Sources\nAverage']
+    elif subtxt=='pressures':
+        sources_av_row_values = df.loc[rows_to_sort, 'Pressures\nAverage']
+    sorted_rows = sources_av_row_values.sort_values(ascending=True).index.tolist()
+    sorted_rows.append(av_row)
     df = df.reindex(sorted_rows)
 
-    # Sort by national validation value
+    # Sort columns by source average
     av_col = df.columns[-1]
     cols_to_sort = df.columns[df.columns != av_col]  # Exclude 'Sources average'
-    # national_row_values = df.loc['Nationally-validated', cols_to_sort]
-    national_row_values = df.loc['Characteristics\nAverage', cols_to_sort]
-    sorted_columns = national_row_values.sort_values(ascending=True).index.tolist()
+    car_av_row_values = df.loc['Characteristics\nAverage', cols_to_sort]
+    sorted_columns = car_av_row_values.sort_values(ascending=True).index.tolist()
     sorted_columns.append(av_col)
-    
-    # sources_avg = df[av_col]
-    # df_transposed = df[df.columns[:-1]].T
-    # correlations = df_transposed.corrwith(sources_avg, axis=1)
-    # correlations = df.corrwith(sources_avg, axis=1)
-    # sorted_rows = correlations.abs().sort_values(ascending=False).index
-    # df = df.loc[sorted_rows]
 
     return df[sorted_columns]
 
@@ -649,13 +388,12 @@ def combined_heatmap(scoring_folder_Ec, scoring_folder_Pe, subtxt):
     df_pivot_Pe = pd.read_csv(path_df_Pe, index_col=0)
 
     # Reorder cols according to national validation
-    df_pivot_Ec = reorder_cols(df_pivot_Ec)
-    df_pivot_Pe = reorder_cols(df_pivot_Pe)
+    df_pivot_Ec = reorder_cols(df_pivot_Ec, subtxt)
+    df_pivot_Pe = reorder_cols(df_pivot_Pe, subtxt)
 
     # Set up graph 
-    desired_figsize_mm = (88*2, 70)  # Set your desired figure size in mm (width, height)
+    desired_figsize_mm = (88*2, 70*2)  # Set your desired figure size in mm (width, height)
     desired_figsize = (desired_figsize_mm[0] / 25.4, desired_figsize_mm[1] / 25.4)  # Convert mm to inches (1 inch = 25.4 mm)
-    # desired_figsize=(3.46*2, 4)
     desired_font = {'family': 'sans-serif', 'weight': 'normal', 'size': 5}
     plt.rcParams['figure.dpi'] = 300
     plt.rcParams['savefig.dpi'] = 300
@@ -670,44 +408,37 @@ def combined_heatmap(scoring_folder_Ec, scoring_folder_Pe, subtxt):
         pretitle = ''
     fig.suptitle(f'{pretitle}{subtitle} analysis', fontsize=7)
     
-    # Create subplots
-    gs = GridSpec(1, 30)
-    ax_heatmap1 = fig.add_subplot(gs[0, :15])
-    ax_heatmap2 = fig.add_subplot(gs[0, 15:])
+    gs = GridSpec(2, 1)
+    ax_heatmap1 = fig.add_subplot(gs[0, 0])
+    ax_heatmap2 = fig.add_subplot(gs[1, 0])
+
 
     # Set up heatmaps
     annot = True
-    # annot = False
     xticks_rotation = 90
-    # xticks_rotation = 0
     colors = ['#d73027', '#fdae61', '#ffffbf', '#a1d99b', '#1a9850']
     cmap = LinearSegmentedColormap.from_list('RdYlGr', colors)
-    # cmap = 'RdYlBu'
     
     # Create heatmaps
     title_Ec = fig_letter_Ec + ' Ecuador'
     title_Pe = fig_letter_Pe + ' Peru'
     create_heatmap_ax(df_pivot_Ec, ax=ax_heatmap2, cmap=cmap, annot=annot,
-                      cbar=True, vmin=0, vmax=3, ticks='No', title=title_Ec, 
+                      cbar=True, vmin=0, vmax=3, ticks='Yes', title=title_Ec, 
                       xticks_rotation=xticks_rotation)
     create_heatmap_ax(df_pivot_Pe, ax=ax_heatmap1, cmap=cmap, annot=annot, 
-                      cbar=False, vmin=0, vmax=3, ticks='Yes', title=title_Pe, 
+                      cbar=True, vmin=0, vmax=3, ticks='Yes', title=title_Pe, 
                       xticks_rotation=xticks_rotation)
-
+    
     # Adjust layout and show
     plt.tight_layout()
-    # plt.show()
 
     # Save
     name = f'Input_analysis_dataset_scores_Pe_Ec_{subtxt}'
     for scoring_folder in [scoring_folder_Ec, scoring_folder_Pe]:
         fig_path = f'{scoring_folder}/{name}.png'
         plt.savefig(fig_path, bbox_inches='tight')
-        # fig_path = f'{scoring_folder}/{name}.svg'
-        # plt.savefig(fig_path, bbox_inches='tight', transparent=True)
         fig_path = f'{scoring_folder}/{name}.eps'
         plt.savefig(fig_path, bbox_inches='tight')
-        # plt.show()
 
 
 def radar_plot(purposes_scoring, df_ps, country, scoring_folder, map_settings,
@@ -717,7 +448,6 @@ def radar_plot(purposes_scoring, df_ps, country, scoring_folder, map_settings,
     desired_figsize_mm = (88, 70)  # Set your desired figure size in mm (width, height)
     # Convert mm to inches (1 inch = 25.4 mm)
     desired_figsize = (desired_figsize_mm[0] / 25.4, desired_figsize_mm[1] / 25.4)
-    # print(f'{desired_figsize=}') # desired_figsize=(3.4645669291338583, 2.7559055118110236)
     desired_font = {'family': 'sans-serif', 'weight': 'normal', 'size': 5}  # Set your desired font
     plt.rcParams['figure.dpi'] = 300
     plt.rcParams['savefig.dpi'] = 300
@@ -783,7 +513,6 @@ def radar_plot(purposes_scoring, df_ps, country, scoring_folder, map_settings,
     # # Add a legend
     # Sort Dataframe by average
     df_ps = df_ps.sort_values(by='average', ascending=False)
-    # https://stackoverflow.com/questions/25830780/tabular-legend-layout-for-matplotlib/25995730
     # create blank rectangle
     extra = Rectangle((0, 0), 1, 1, fc="w", fill=False, edgecolor='none', linewidth=0)
     #Create organized list containing all handles for table. Extra represents empty space
@@ -810,11 +539,8 @@ def radar_plot(purposes_scoring, df_ps, country, scoring_folder, map_settings,
     # Save the figure
     fig_path = f'{scoring_folder}/Purposes_scoring_{country}.png'
     plt.savefig(fig_path, bbox_inches='tight')
-    # fig_path = f'{scoring_folder}/Purposes_scoring_{country}.svg'
-    # plt.savefig(fig_path, bbox_inches='tight', transparent=True)
     fig_path = f'{scoring_folder}/Purposes_scoring_{country}.eps'
     plt.savefig(fig_path, bbox_inches='tight')
-    # print(f'{scoring_folder=}')
 
     # Show the plot (optional)
     plt.show()
@@ -846,7 +572,7 @@ def get_purpose_scores(purposes_scoring, input_analysis_scoring, map_settings, p
     for map_setting in  map_settings:
 
         df = pd.DataFrame(columns=purposes_scoring)
-        # purpose_scores = {}
+
         if map_setting+'_HF' not in df_input_analysis.columns: df_input_analysis[map_setting+'_HF'] = pd.NA
 
         # Scores offi, curr, finer, mult
@@ -868,9 +594,6 @@ def get_purpose_scores(purposes_scoring, input_analysis_scoring, map_settings, p
             df_input_analysis = pd.concat([df_input_analysis, df2_unique_rows])
             df_input_analysis.loc[dataset_scores2.index, map_setting+'_HF'] = 'Yes'
             df_input_analysis.loc[dataset_scores2.index, pressure] = 'Yes'
-                    
-        # # Possible plots
-        # plot_by_dataset(purpose_scores, map_setting)
 
         # Calculate Indirect pressure scores as the average of the components:
         # Built_Environments, Land_Cover, Roads_Railways, Rivers
@@ -895,7 +618,6 @@ def get_purpose_scores(purposes_scoring, input_analysis_scoring, map_settings, p
     # Restructure and save data for input analysis
     df_input_analysis = df_input_analysis[df_input_analysis['Source']!='derived']
     df_input_analysis.fillna(0, inplace=True)
-    # df_input_analysis['average'] = df_input_analysis[char_list].mean(axis=1)
     df_input_analysis = reorder_columns(df_input_analysis, maps_list, order='last')
     df_input_analysis = reorder_columns(df_input_analysis, char_list, order='first')
     name = f'Input_analysis_dataset_scores_{country}'
@@ -906,21 +628,12 @@ def get_purpose_scores(purposes_scoring, input_analysis_scoring, map_settings, p
     # Pivot tables for heatmaps\
     # Remove accurate and complete as they are part of input analysis
     chars_list = [char for char in purposes_scoring+input_analysis_scoring if char not in ['Accurate', 'Complete']]
-    # df_input_analysis_NonOff = df_input_analysis[df_input_analysis['Nationally-validated']!=3]
-    # df_input_analysis_Off = df_input_analysis[df_input_analysis['Nationally-validated']==3]
     df_pivot_pressures = pivot_table(df_input_analysis, pressures_input, chars_list, source=False)
     df_pivot_sources = pivot_table(df_input_analysis, ['Source'], chars_list, source=True)
-    # df_pivot_pressures_NonOff = pivot_table(df_input_analysis_NonOff, pressures_input, chars_list)
-    # df_pivot_pressures_Off = pivot_table(df_input_analysis_Off, pressures_input, chars_list)
     name_pres = f'Input_analysis_heatmap_values_pressures_{country}'
     print_save(df_pivot_pressures, scoring_folder, name_pres, print_=False)
     name_sour = f'Input_analysis_heatmap_values_sources_{country}'
     print_save(df_pivot_sources, scoring_folder, name_sour, print_=False)
-    # name_NonOff = f'Input_analysis_heatmap_values_pressures_{country}_NonOff'
-    # print_save(df_pivot_pressures_NonOff, scoring_folder, name_NonOff, print_=False)
-    # name_Off = f'Input_analysis_heatmap_values_pressures_{country}_Off'
-    # print_save(df_pivot_pressures_Off, scoring_folder, name_Off, print_=False)
-    # plot_input_analysis(df_pivot_pressures, pressures_input, maps_list)
 
     # Accuracy score
     sub_df = df_val_metrics[df_val_metrics['Country'] == settings.country].copy()
@@ -949,10 +662,6 @@ def get_purpose_scores(purposes_scoring, input_analysis_scoring, map_settings, p
 
     comp_df['Pressures_norm'] = comp_df['Pressures'] / comp_df['Pressures'].max()
     comp_df['Categories_norm'] = comp_df['Categories'] / comp_df['Categories'].max()
-    
-    # title = 'Completion'
-    # keep_fields = ['Pressures_norm', 'Categories_norm']
-    # bar_plot(comp_df, title, keep_fields=keep_fields)
 
     for map_setting in map_settings:
         df_ps.loc[map_setting]['Complete'] = \
@@ -994,13 +703,11 @@ if __name__ == "__main__":
     ps = {
         'null': 0,
         'low': 1,
-        # 'low': .5,
         'med': 2,
         'high': 3,
         }
 
     countries_to_process = ['Peru', 'Ecuador']
-    # countries_to_process = ['Ecuador']
     
     for c2p in countries_to_process:
         
@@ -1010,9 +717,9 @@ if __name__ == "__main__":
             country_processing = 'Peru_HH'
             # Purposes maps
             map_settings = {
-                'SDG15': ['Pe_20241012_162237_SDG15_Peru_IGN_30m', '#1ABD1A', 's'],
-                'Multitemporal': ['Pe_20241012_204320_Multitemporal_Peru_IGN_30m', '#1395D4', '^'],
-                'Official': ['Pe_20241013_004303_Official_Peru_IGN_30m', '#D4AF13', 'o'],
+                'SDG15': ['Pe_20241029_101800_SDG15_Peru_IGN_30m', '#1ABD1A', 's'],
+                'Multitemporal': ['Pe_20241029_212739_Multitemporal_Peru_IGN_30m', '#1395D4', '^'],
+                'Official': ['Pe_20241029_221745_Official_Peru_IGN_30m', '#D4AF13', 'o'],
                 }
             fig_letter = 'a)'
             # fig_letter = None
@@ -1022,9 +729,9 @@ if __name__ == "__main__":
             # Main folder on the same level as the scripts. Keep format '/folder//'
             country_processing = 'Ecuador_HH'
             map_settings = {
-                'SDG15': ['Ec_20241010_184840_SDG15_Limite_CONALI_2019_30m', '#1ABD1A', 's'],
-                'Multitemporal': ['Ec_20241010_183814_Multitemporal_Limite_CONALI_2019_30m', '#1395D4', '^'],
-                'Official': ['Ec_20241011_011155_Official_Limite_CONALI_2019_30m', '#D4AF13', 'o'],
+                'SDG15': ['Ec_20250226_085705_SDG15_Limite_CONALI_2019_30m', '#1ABD1A', 's'],
+                'Multitemporal': ['Ec_20250226_095320_Multitemporal_Limite_CONALI_2019_30m', '#1395D4', '^'],
+                'Official': ['Ec_20250226_100107_Official_Limite_CONALI_2019_30m', '#D4AF13', 'o'],
                 }
             fig_letter = 'b)'
             # fig_letter = None
@@ -1045,7 +752,7 @@ if __name__ == "__main__":
         save_settings(country, map_settings, scoring_folder)
 
     
-# XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+#XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 # Process
 
         # Start validation
@@ -1060,17 +767,9 @@ if __name__ == "__main__":
         radar_plot(purposes_scoring, df_ps, country, scoring_folder, map_settings,
                    fig_letter=fig_letter)
         
-    # print('''
-           
-    #       ''') 
-        
     # Create heatmap graph for both countries
     # Saves same result in both folders
-    heatm_versions = ['pressures', 'sources']
+    heatm_versions = ['sources']
+    # heatm_versions = ['pressures', 'sources']
     for hv in heatm_versions:
         combined_heatmap(scoring_folder_Ec, scoring_folder_Pe, hv)
-    # combined_heatmap(scoring_folder_Ec, scoring_folder_Pe)
-
-CHECK THAT CHANGE IN YEARS IN SETTINGS DOES NOT IMPACT HERE
-        
-    

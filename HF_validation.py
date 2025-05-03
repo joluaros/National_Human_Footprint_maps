@@ -2,7 +2,7 @@
 """
 Module for creating the Human Footprint maps of Peru and Ecuador.
 
-Version 2041001 (Preprint)
+Version 250503 (SciData)
 
 This script will read spatial datasets of pressures, prepared them by
 converting them all to a raster format with identical dimensions, then
@@ -10,12 +10,15 @@ score them to reflect their expected human influence.
 The scored pressures will then be added to calculate a Human Footprint map.
 
 The structure of the module requires the following:
-    - HF_main.py to control the higher level of the process.
+    - HF_main.py (this script) to control the higher level of the process.
     - HF_settings to control the general settings.
     - HF_tasks to call all functions according to the HF workflow.
     - HF_spatial to provide all spatial functions and classes.
     - HF_scores to provide scores of humnan influence.
     - HF_layers for the settings related to layers (e.g. paths).
+    - HF_validation for calculating validation metrics.
+    - HF_purpose_scoring (Optional) is not required to create HF maps. It 
+    compares different HF versions according to the TARA framework.
 
 This is part of the project Life on Land, with UNDP, the Ministries of the
 Environment of each country, and funded by NASA.
@@ -26,27 +29,27 @@ Created on Thu Jun 18 18:26:00 2020
 
 """
 
+
 import pandas as pd
 import numpy as np
-# import rasterio
-# import matplotlib.pyplot as plt
-# from sklearn.linear_model import LinearRegression
-# import seaborn as sns
-# from osgeo import osr, ogr
-# from HF_scores import GHF
-from HF_scores import Urban_area_score, Densily_populated_areas_score, Infrastructure_impervious_pollution_score, Infrastructure_impervious_score, Main_road_score, Infrastructure_partially_impervious_score, Secondary_road_score, Partially_impervious_pollution, Settlement_score, Artificial_water_score, Country_road_score, Pasture_score, Agriculture_score, Linear_infrastructure_pollution_score, Linear_infrastructure_score, Tree_plantation_score, Land_use_change_score, Trail_score
 import os
-# from affine import Affine
 import geopandas as gpd
-import rasterstats as rs
 import matplotlib.pyplot as plt
-from sklearn.metrics import cohen_kappa_score
-# import sklearn.metrics
-# from pandas.plotting import scatter_matrix
-# from shapely.geometry import Point
-# from shapely.prepared import prep
-# from shapely.wkb import loads
-# import json
+import rasterstats as rs
+
+# Import scores
+from HF_scores import Urban_area_score
+from HF_scores import Densily_populated_areas_score
+from HF_scores import Infrastructure_impervious_pollution_score
+from HF_scores import Main_road_score
+from HF_scores import Secondary_road_score
+from HF_scores import Settlement_score
+from HF_scores import Country_road_score
+from HF_scores import Pasture_score
+from HF_scores import Agriculture_score
+from HF_scores import Tree_plantation_score
+from HF_scores import Trail_score
+
 
 # osr.UseExceptions()
 
@@ -77,38 +80,28 @@ def calculate_visual_score(vdf, fields_vis_scores, other_fields,
     # Score all visual fields
     vis_txt = '_vis'
     for pressure, scored_fields in pressures_dict.items():
-        # con_cat = scored_fields['cont_cat']
         if not pressure[:3]=='HF_':
             for scored_field, score in scored_fields.items():
                 # *score standardizes to pressure to 0-10
                 vdf[scored_field+vis_txt] = vdf[scored_field] * score/3
-                # vdf[scored_field+vis_txt] = np.where(vdf[scored_field] > 0, score, 0)
                 vdf[scored_field+vis_txt] = vdf[scored_field+vis_txt].fillna(0)
 
     # Create all 0s visual pressure fields
     for pressure, scored_fields in pressures_dict.items():
-        # if not pressure[:3]=='HF_':
         vdf[pressure+vis_txt] = 0
 
     # Add to pressures
     for pressure, scored_fields in pressures_dict.items():
         if not pressure[:3]=='HF_':
-            # vdf[pressure+vis_txt] = 0
+
             for scored_field, score in scored_fields.items():
-                # print(scored_field, score)
-                # if not scored_field=='cont_cat':
                 vdf[pressure+vis_txt] = np.maximum(vdf[pressure+vis_txt], vdf[scored_field+vis_txt])
-                # vdf[pressure+vis_txt] = vdf[pressure+vis_txt] + vdf[scored_field+vis_txt]
 
     # Deal with not co-occurring layers
     # Change indirect to 0 if built environments
     if ('Indirect_pressure_vis' in vdf.columns) and ('Built_Environments_vis' in vdf.columns):
         vdf['Indirect_pressure_vis'] = np.where(vdf['Built_Environments_vis']>0, 0, vdf['Indirect_pressure_vis'])
         
-    # if ('Land_Cover_vis' in vdf.columns) and ('Built_Environments_vis' in vdf.columns):
-    #     vdf['Land_Cover_vis'] = np.where(vdf['Built_Environments_vis']>0, 0, vdf['Land_Cover_vis'])
-
-
     # Add to HF index
     HF_field = None
     for pressure, scored_fields in pressures_dict.items():
@@ -116,7 +109,6 @@ def calculate_visual_score(vdf, fields_vis_scores, other_fields,
             HF_field = pressure
 
     if HF_field:
-        # vdf[HF_field+vis_txt] = 0
         for pressure, scored_fields in pressures_dict.items():
             if not pressure[:3]=='HF_':
                 vdf[HF_field+vis_txt] = vdf[HF_field+vis_txt] + vdf[pressure+vis_txt]
@@ -143,7 +135,6 @@ def values_from_rasters(vis_path, vdf, country_field, results_folder,
     if not exists:
         
         # Create list of rasters to extract values from
-        # res = settings.pixel_res
         map_txt = '_map'
         
         # Create empty df
@@ -151,9 +142,8 @@ def values_from_rasters(vis_path, vdf, country_field, results_folder,
         
         # pressure_paths = {}
         for pressure, scored_fields in pressures_dict.items():
-            # if not pressure=='cont_cat':
+
             initial_txt='' if pressure[:3]=='HF_' else 'p_'
-            # print(pressure, scored_fields)
             raster_path = f'{initial_txt}{pressure}_{lim_txt}_{purpose}_2018_GHF_{res}m.tif'
     
             exists = os.path.isfile(results_folder+raster_path)
@@ -164,9 +154,7 @@ def values_from_rasters(vis_path, vdf, country_field, results_folder,
                 raster_values_df[pressure+map_txt] = 0
     
         for raster_name, raster_path in other_rasters.items():
-            # vdf[raster_name] = extract_values(vis_path, raster_path)
             raster_values_df[raster_name] = extract_values(vis_path, raster_path)
-            # vdf[raster_name] = vdf[raster_name].fillna(0)       
             
         # Save df
         raster_values_df.to_csv(raster_values_df_path)
@@ -179,12 +167,9 @@ def values_from_rasters(vis_path, vdf, country_field, results_folder,
 
 
 def scatter_plot(vdf, field1, field2, pressure, txt, results_folder, purpose):
+    
     # Convert the GeoDataFrame to a regular DataFrame
-    # df = pd.DataFrame(vdf)
     vdf.plot(x=field1, y=field2, kind="scatter")
-
-    # # Create a scatterplot matrix with a unity diagonal line
-    # scatter_matrix(df, alpha=0.2, figsize=(8, 8), diagonal='kde')
 
     # # Add a unity diagonal line
     # plt.plot([df[field1].min(), df[field1].max()], [df[field2].min(), df[field2].max()], color='red')
@@ -203,12 +188,8 @@ def calculate_metrics(vdf, field1, field2, pressure, results_folder, purpose):  
     # Normalize fields
     vdf[field1+'_norm'] = vdf[field1] / (vdf[field1].max() - vdf[field1].min()) # map
     vdf[field2+'_norm'] = vdf[field2] / (vdf[field2].max() - vdf[field2].min()) # vis
-    # vdf[field1+'_norm'] = vdf[field1]
-    # vdf[field2+'_norm'] = vdf[field2] # TRY THIS, not normalized
 
     if pressure[:3]=='HF_':
-        # scatter_plot(vdf, field1+'_norm', field2+'_norm', pressure,
-        #              ' (normalized)', results_folder, purpose)
         scatter_plot(vdf, field1, field2, pressure, '', results_folder, purpose)
 
     # Get RMSE by pressure
@@ -221,15 +202,6 @@ def calculate_metrics(vdf, field1, field2, pressure, results_folder, purpose):  
 
     agr = .2  # Agreement
     vdf[f'{pressure}_Dif'] = np.round(vdf[field1+'_norm']-vdf[field2+'_norm'],2) #  Map - Vis
-
-    # # TODO remove or merg Calculate kappa (e)
-    # Gives better results but not comparable to global HF
-    # vdf[field1+'_skkappa'] = vdf[field1+'_norm'].astype(str)
-    # vdf[field2+'_skkappa'] = np.where(np.abs(vdf[f'{pressure}_Dif'])<agr, vdf[field1+'_skkappa'],\
-    #                                   vdf[field2+'_norm'].astype(str))
-    # skkappa = cohen_kappa_score(vdf[field1+'_skkappa'], vdf[field2+'_skkappa'])
-    # # skkappa = sklearn.metrics.cohen_kappa_score(vdf[field1+'_skkappa'], vdf[field2+'_skkappa'])
-    # print(f'{skkappa=}')
 
     # Get Kappa
     median = np.median(vdf[f'{pressure}_Dif'])
@@ -269,8 +241,6 @@ def calculate_metrics(vdf, field1, field2, pressure, results_folder, purpose):  
     # Add a row of column sums AND a column of row sums
     df_kappa.loc['Total_h'] = df_kappa.sum()
     df_kappa['Total_v'] = df_kappa.sum(axis=1)
-    # print()
-    # print(f'{df_kappa=}')
     agreement_kappa = df_kappa.loc['Low','low'] + df_kappa.loc['High','high']
     by_ch1 = df_kappa.loc['Total_h','low'] * df_kappa.loc['Low','Total_v'] / df_kappa.loc['Total_h','Total_v']
     by_ch2 = df_kappa.loc['Total_h','high'] * df_kappa.loc['High','Total_v'] / df_kappa.loc['Total_h','Total_v']
@@ -289,8 +259,6 @@ def get_validation_metrics(vdf, results_folder, pressures_dict, country, purpose
 
     validation_text = []
     validation_text.append(country)
-    # validation_df = pd.DataFrame(columns=('Country', 'Pressure', 'RMSE', 'Kappa', 'R2'))
-    # validation_df.set_index(['Country','Pressure'],inplace=True)
 
     for pressure, scored_field in pressures_dict.items():
 
@@ -299,7 +267,6 @@ def get_validation_metrics(vdf, results_folder, pressures_dict, country, purpose
 
             rounding = 2
             vis_field, map_field = pressure+'_vis', pressure+'_map'
-            # vdf, RMSE, df_kappa, agreement_kappa, by_chance, kappa, corr2 = calculate_metrics(vdf, map_field, vis_field, pressure)
             vdf, RMSE, kappa, corr2, dict_kappa_agreement = calculate_metrics(vdf, map_field,
                                                         vis_field, pressure,
                                                         results_folder, purpose)
@@ -307,12 +274,8 @@ def get_validation_metrics(vdf, results_folder, pressures_dict, country, purpose
             # Save a file of validation stats (overwrites)
             validation_text.append(f'\n\nValidation metrics {pressure} \n')
             validation_text.append(f'RMSE = {np.round(RMSE, rounding)}')
-            # validation_text.append(df_kappa)
-            # validation_text.append(f'Agreement = {agreement_kappa}')
-            # validation_text.append(f'By chance =  {np.round(by_chance, 2)}')
             validation_text.append(f'Kappa statistic = {np.round(kappa, rounding)}')
             validation_text.append(f'Determination coefficient (r^2) = {np.round(corr2, rounding)}')
-            # validation_df.loc[(country, pressure),:] = (RMSE,kappa,corr2)
 
             print()
             print(f'Validation stats {country}/{pressure}')
@@ -346,7 +309,6 @@ def get_validation_metrics(vdf, results_folder, pressures_dict, country, purpose
 
 def validate_HF_map(main_folder, settings, purpose, results_folder, res, country):
 
-    # country = settings.country
     print()
     print(f"Calculating validation metrics {purpose} {country}")
 
@@ -381,8 +343,6 @@ def validate_HF_map(main_folder, settings, purpose, results_folder, res, country
         ]
 
     max_ind_score = 2*3 #Multiplying by 3 corrects the division in function calculate_visual_score
-
-    # Agriculture_score = 0
     
     pressures_dicts = {
 
@@ -546,21 +506,19 @@ def validate_HF_map(main_folder, settings, purpose, results_folder, res, country
 
     if country == 'Peru':
         vis_path = main_folder + r'Validation_inputs/210417_1_Validation_Pe.gpkg'
-        # lim_txt = 'Peru_IGN'
 
     elif country == 'Ecuador':
         vis_path = main_folder + r'Validation_inputs/210417_1_Validation_Ec.gpkg'
-        # lim_txt = 'Limite_CONALI_2019'
 
     # Field to look for country
     country_field = 'Country'
     # Fields for x and y
     xfield = "POINT_X"
     yfield = "POINT_Y"
-    # Remove Colombia points
+    # Remove Colombia points if existing
     remove_field = 'Country'
-    remove_value = 'Colombia' #  TODO remove this part
-    # Keep only points for position 0  # TODO add certain parameter here
+    remove_value = 'Colombia'
+    # Keep only points for position 0 if other are available
     keep_dict = {
         'position': 'p0',
         'rivers': 0,
@@ -593,10 +551,6 @@ def validate_HF_map(main_folder, settings, purpose, results_folder, res, country
     vdf_path = results_folder + '/Validation_points.gpkg'
     vdf.to_file(vdf_path, driver='GPKG')
 
-    # # Compare between visual and map indexes
-    # stacked_bars_plot(vdf, pressures_dict)
-
-
 class GENERAL_SETTINGS:
     """
 
@@ -614,12 +568,10 @@ class GENERAL_SETTINGS:
 
 ############################################
 
-if __name__ == "__main__":
-    
-    # TODO setting to rewrite values from rasters
+if __name__ == "__main__":  
     
     country = 'Ecuador'
-    country = 'Peru'
+    # country = 'Peru'
 
     init_settings = {
         'Ecuador': {
@@ -629,17 +581,17 @@ if __name__ == "__main__":
                 
                 'SDG15': {
                     'HF_name': 'HF_Ecuador_Limite_CONALI_2019_SDG15_2018_GHF_30m.tif',
-                    'more_folders': r'HF_maps\b06_HF_maps\Ec_20241010_184840_SDG15_Limite_CONALI_2019_30m//',
+                    'more_folders': r'HF_maps\b06_HF_maps\Ec_20250226_085705_SDG15_Limite_CONALI_2019_30m//',
                     },
                 
                 'Multitemporal': {
                     'HF_name': 'HF_Ecuador_Limite_CONALI_2019_Multitemporal_2018_GHF_30m.tif',
-                    'more_folders': r'HF_maps\b06_HF_maps\Ec_20241010_183814_Multitemporal_Limite_CONALI_2019_30m//',
+                    'more_folders': r'HF_maps\b06_HF_maps\Ec_20250226_095320_Multitemporal_Limite_CONALI_2019_30m//',
                     },
                 
                 'Official': {
                     'HF_name': 'HF_Ecuador_Limite_CONALI_2019_Official_2018_GHF_30m.tif',
-                    'more_folders': r'HF_maps\b06_HF_maps\Ec_20241011_011155_Official_Limite_CONALI_2019_30m//',
+                    'more_folders': r'HF_maps\b06_HF_maps\Ec_20250226_100107_Official_Limite_CONALI_2019_30m//',
                     },
                 
                 }
@@ -679,7 +631,7 @@ if __name__ == "__main__":
         
         results_folder = main_folder + purpose_settings['more_folders']
         HF_path = results_folder + purpose_settings['HF_name']
-        validate_HF_map(main_folder, settings, purpose, results_folder, res)
+        validate_HF_map(main_folder, settings, purpose, results_folder, res, country)
 
     print('\007')
     # print("------ FIN ------")

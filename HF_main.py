@@ -2,7 +2,7 @@
 """
 Module for creating the Human Footprint maps of Peru and Ecuador.
 
-Version 2041001 (Preprint)
+Version 250503 (SciData)
 
 This script will read spatial datasets of pressures, prepared them by
 converting them all to a raster format with identical dimensions, then
@@ -16,6 +16,9 @@ The structure of the module requires the following:
     - HF_spatial to provide all spatial functions and classes.
     - HF_scores to provide scores of humnan influence.
     - HF_layers for the settings related to layers (e.g. paths).
+    - HF_validation for calculating validation metrics.
+    - HF_purpose_scoring (Optional) is not required to create HF maps. It 
+    compares different HF versions according to the TARA framework.
 
 This is part of the project Life on Land, with UNDP, the Ministries of the
 Environment of each country, and funded by NASA.
@@ -26,11 +29,11 @@ Created on Thu Jun 18 18:26:00 2020
 
 ------------
 
+
 conda config --add channels conda-forge
 conda create --name hh_py39 python=3.9 gdal matplotlib seaborn pandas geopandas scikit-image pysal rasterio xarray rioxarray rasterstats spyder
 
 """
-
 
 import time
 from datetime import timedelta
@@ -41,8 +44,8 @@ from HF_tasks import begin_HF
 # HF purpose, version or set of maps
 purposes = [ 
     'SDG15',
-    'Multitemporal',
-    'Official',
+    # 'Multitemporal',
+    # 'Official',
     ]
 
 # Indicate tasks to perform (leave other commented out)
@@ -56,8 +59,8 @@ tasks = [
 ]
 
 # Main folder on the same level as the scripts. Keep format '/folder//'
-country_processing = 'Peru_HH'
-# country_processing = 'Ecuador_HH'
+# country_processing = 'Peru_HH'
+country_processing = 'Ecuador_HH'
 
 # Don't change the following
 # Process Human Footprint maps according to settings

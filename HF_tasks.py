@@ -2,7 +2,7 @@
 """
 Module for creating the Human Footprint maps of Peru and Ecuador.
 
-Version 2041001 (Preprint)
+Version 250503 (SciData)
 
 This script will read spatial datasets of pressures, prepared them by
 converting them all to a raster format with identical dimensions, then
@@ -10,12 +10,15 @@ score them to reflect their expected human influence.
 The scored pressures will then be added to calculate a Human Footprint map.
 
 The structure of the module requires the following:
-    - HF_main.py to control the higher level of the process.
+    - HF_main.py (this script) to control the higher level of the process.
     - HF_settings to control the general settings.
     - HF_tasks to call all functions according to the HF workflow.
     - HF_spatial to provide all spatial functions and classes.
     - HF_scores to provide scores of humnan influence.
     - HF_layers for the settings related to layers (e.g. paths).
+    - HF_validation for calculating validation metrics.
+    - HF_purpose_scoring (Optional) is not required to create HF maps. It 
+    compares different HF versions according to the TARA framework.
 
 This is part of the project Life on Land, with UNDP, the Ministries of the
 Environment of each country, and funded by NASA.
@@ -23,6 +26,7 @@ Environment of each country, and funded by NASA.
 Created on Thu Jun 18 18:26:00 2020
 
 @author: Jose Aragon-Osejo aragon@unbc.ca / jose.luis.aragon.ec@gmail.com
+
 
 """
 
@@ -158,17 +162,11 @@ class begin_HF():
 
             # Mask water
             if "Preparing_folder" in tasks:
-                # tif_folder = r"G:\Conservation Solution Lab\People\Jose\OneDrive - UNBC\LoL_Data\Peru_HH\HF_maps\b05_HF_maps\Pe_20230605_183825_SDG15_Peru_IGN"
-                # river_raster_path = r"Z:\Peru_HH\HF_maps\b03_Prepared_pressures/Peru_IGN_Pe_luc_Mapbiopmas_15_2015_GHF_30m_prepared.tif"
-                # water_val = 33
                 preparing_folder(results_folder, settings, self.main_folder,
                                   res)
 
             # Mask water
             if "Validating" in tasks:
-                # tif_folder = r"G:\Conservation Solution Lab\People\Jose\OneDrive - UNBC\LoL_Data\Peru_HH\HF_maps\b05_HF_maps\Pe_20230605_183825_SDG15_Peru_IGN"
-                # river_raster_path = r"Z:\Peru_HH\HF_maps\b03_Prepared_pressures/Peru_IGN_Pe_luc_Mapbiopmas_15_2015_GHF_30m_prepared.tif"
-                # water_val = 33
                 if 2018 in years and not settings.clip_by_Polygon:
                     validate_HF_map(self.main_folder, settings, purpose, 
                                     results_folder, res, settings.country)
@@ -266,7 +264,6 @@ at the national level AND for the year 2018.
 
         # Prepare name for base raster
         extent = settings.extent_Polygon
-        # res = settings.pixel_res
         chunk = extent.split('/')[-1].replace('.', '_')
         base_path = f'{self.main_folder}HF_maps/b02_Base_rasters/base_{chunk}_{res}m.tif'
 
@@ -359,7 +356,7 @@ class PREPARING():
                                     'urban_scores', 'built_Meta_scores',
                                     'Infr_imp_scores', 'Infr_imp_poll_scores_05',
                                     'Infr_imp_poll_scores_15', 'Infr_imp_poll_scores_5',
-                                    'Part_imp_poll_05', 'Inf_part_imp_05',
+                                    'Part_imp_poll', 'Part_imp_poll_05', 'Inf_part_imp_05',
                                     'Inf_part_imp_15', 
                                     'line_inf_poll_scores', 'line_inf_scores',
                                     'plantations_scores',
@@ -487,20 +484,17 @@ class SCORING():
                     scoring_method_template = template[scoring_method2]
                     if scoring_method_template['func'] == 'bins':
                         self.scores = scoring_method_template['scores_by_bins']
-                        # Float = True
                     elif scoring_method_template['func'] == 'exp':
                         self.direct_score = scoring_method_template['direct_score']
                         self.max_score_exp = scoring_method_template['max_score_exp']
                         self.min_score_exp = scoring_method_template['min_score_exp']
                         self.max_dist = scoring_method_template['max_dist']
-                        # Float = True
                     elif scoring_method_template['func'] == 'log':
                         self.max_score = scoring_method_template['max_score']
                         self.mult_factor = scoring_method_template['mult_factor']
                         self.min_threshold = scoring_method_template['min_threshold']
                         self.max_threshold = scoring_method_template['max_threshold']
                         self.scaling_factor = scoring_method_template['scaling_factor']
-                        # Float = True
                     elif scoring_method_template['func'] == 'categories':
                         self.scores = scoring_method_template['scores_by_categories']
                     elif scoring_method_template['func'] == 'linear':
@@ -508,7 +502,6 @@ class SCORING():
                         self.max_threshold = scoring_method_template['max_threshold']  #  Median for samples in urban areas
                         self.min_threshold = scoring_method_template['min_threshold']
                         self.resampling_method = 'bilinear'
-                        # Float = True
 
                     # Get units of original layer
                     self.units = layers_settings[layer]['units']
@@ -558,7 +551,7 @@ class SCORING():
                             'urban_scores', 'built_Meta_scores',
                             'Infr_imp_scores', 'Infr_imp_poll_scores_05',
                             'Infr_imp_poll_scores_15', 'Infr_imp_poll_scores_5',
-                            'Part_imp_poll_05', 'Inf_part_imp_05',
+                            'Part_imp_poll', 'Part_imp_poll_05', 'Inf_part_imp_05',
                             'Inf_part_imp_15', 
                             'line_inf_poll_scores', 'line_inf_scores',
                             'plantations_scores',
@@ -661,39 +654,6 @@ class SCORING():
         else:
             print(f'         {layer} was already scored')
 
-    # def get_bins(self, array, min_th, nd):
-    #     """
-
-
-    #     Parameters
-    #     ----------
-    #     array : array from nightime lights raster.
-    #     min_th : minimum threshold used to filter out possible noise in the
-    #     form of very small values.
-    #     nd : Nodata value from nightime lights raster.
-
-    #     Returns
-    #     -------
-    #     scores : bins of scores in the form of (DN=Digital Number):
-    #             ((0, DN=500), 1), #  Bin 1
-    #             ((500, 1000), 2), #  Bin 2
-    #             ...
-    #             ((1500, np.inf), 10) #  Bin 10
-
-    #     """
-
-    #     ar_f = array.flatten()
-    #     ar_f = np.delete(ar_f, np.where(ar_f < min_th))
-    #     ar_f = np.delete(ar_f, np.where(ar_f == 0))
-    #     ar_f = np.delete(ar_f, np.where(ar_f == nd))
-
-    #     r = range(0,11)
-    #     limits = [np.quantile(ar_f, i/10, interpolation='midpoint') for i in r]
-    #     scores = [[[limits[i], limits[i+1]],i+1] for i in r if i < 10]
-
-    #     scores[-1][0][1] = np.inf
-    #     return scores
-
 
 class CALCULATING_MAPS():
     """
@@ -731,12 +691,4 @@ class CALCULATING_MAPS():
             # Add topic rasters, create statistics
             HF_path = addRasters(year, settings, results_folder, purpose,
                         scoring_template, res, main_folder)
-
-            # Validating the map
-            # print('***Activate validation again***')
-            # if last_y:
-            #     validate_HF_map(HF_path, main_folder, settings, purpose,
-            #                     results_folder)
-
-            # Purpose scoring
 

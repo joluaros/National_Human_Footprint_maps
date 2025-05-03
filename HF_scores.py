@@ -2,7 +2,7 @@
 """
 Module for creating the Human Footprint maps of Peru and Ecuador.
 
-Version 2041001 (Preprint)
+Version 250503 (SciData)
 
 This script will read spatial datasets of pressures, prepared them by
 converting them all to a raster format with identical dimensions, then
@@ -10,12 +10,15 @@ score them to reflect their expected human influence.
 The scored pressures will then be added to calculate a Human Footprint map.
 
 The structure of the module requires the following:
-    - HF_main.py to control the higher level of the process.
+    - HF_main.py (this script) to control the higher level of the process.
     - HF_settings to control the general settings.
     - HF_tasks to call all functions according to the HF workflow.
     - HF_spatial to provide all spatial functions and classes.
     - HF_scores to provide scores of humnan influence.
     - HF_layers for the settings related to layers (e.g. paths).
+    - HF_validation for calculating validation metrics.
+    - HF_purpose_scoring (Optional) is not required to create HF maps. It 
+    compares different HF versions according to the TARA framework.
 
 This is part of the project Life on Land, with UNDP, the Ministries of the
 Environment of each country, and funded by NASA.
@@ -146,7 +149,6 @@ GHF = {
     },
 
     'Infr_imp_poll_scores_05': {
-        # 'from': 'Infrastructure_impervious_pollution_score',
         'func': 'bins',
         'scores_by_bins': (
             ((0, 50), Infrastructure_impervious_pollution_score),
@@ -154,7 +156,6 @@ GHF = {
     },
 
     'Infr_imp_poll_scores_15': {
-        # 'from': 'Infrastructure_impervious_pollution_score',
         'func': 'bins',
         'scores_by_bins': (
             ((0, 150), Infrastructure_impervious_pollution_score),
@@ -162,7 +163,6 @@ GHF = {
     },
 
     'Infr_imp_poll_scores_5': {
-        # 'from': 'Infrastructure_impervious_pollution_score',
         'func': 'bins',
         'scores_by_bins': (
             ((0, 500), Infrastructure_impervious_pollution_score),
@@ -170,7 +170,6 @@ GHF = {
     },
 
     'Part_imp_poll_05': {
-        # 'from': 'Mining_score',
         'func': 'bins',
         'scores_by_bins': (
             ((0, 50), Partially_impervious_pollution),
@@ -178,7 +177,6 @@ GHF = {
     },
     
     'Part_imp_poll': {
-        # 'from': 'Mining_score',
         'func': 'bins',
         'scores_by_bins': (
             ((0, 2), Partially_impervious_pollution),
@@ -186,7 +184,6 @@ GHF = {
     },
 
     'Inf_part_imp_05': {
-        # 'from': 'Infrastructure_partially_impervious_score',
         'func': 'bins',
         'scores_by_bins': (
             ((0, 50), Infrastructure_partially_impervious_score),
@@ -194,7 +191,6 @@ GHF = {
     },
 
     'Inf_part_imp_15': {
-        # 'from': 'Infrastructure_partially_impervious_score',
         'func': 'bins',
         'scores_by_bins': (
             ((0, 150), Infrastructure_partially_impervious_score),
@@ -232,7 +228,6 @@ GHF = {
 
     'agr_MINAGRI_scores': {
         'func': 'categories',
-        # 'numb_categories': 1,
         'scores_by_categories': {
             'Not crops': (0, [0]),
             'Crops': (Agriculture_score, [1]),
@@ -242,7 +237,6 @@ GHF = {
 
     'bui_Mapbiopmas_scores': {
         'func': 'categories',
-        # 'numb_categories': 1,
         'scores_by_categories': {
             'Formación boscosa': (0, (3, 4, 5, 6)),
             'Formación natural no boscosa': (0, (11, 12, 13)),
@@ -422,20 +416,13 @@ GHF = {
 if __name__ == "__main__":
 #######################################################################
     from HF_layers import layers_settings#, multitemporal_layers
-    # print(f'{GHF=}')
-    # print(f'\n{multitemporal_layers=}')
-    # print(f'\n{layers_settings=}')
     scoring_dict = {}
     for scoring_method in GHF:
-        # print(scoring_method)
         scoring_dict[scoring_method] = []
         for layer in layers_settings:
-            # print(layer, layers_settings[layer]['scoring'])
             if scoring_method==layers_settings[layer]['scoring']:
-                # print(layer, layers_settings[layer]['scoring'])
                 if 'from' in GHF[scoring_method]:
                     scoring_dict[scoring_method].append(layer)
-                    # scoring_dict[scoring_method].append(['XXX from:'+GHF[scoring_method]['from']])
                 else:
                     scoring_dict[scoring_method].append(layer)
                 
